@@ -1,0 +1,12 @@
+{
+  "domain": "basip",
+  "name": "BAS-IP Intercom",
+  "version": "1.0.0",
+  "config_flow": true,
+  "documentation": "https://github.com/yourusername/basip",
+  "issue_tracker": "https://github.com/yourusername/basip/issues",
+  "requirements": ["aiohttp>=3.8.0"],
+  "dependencies": [],
+  "codeowners": ["@yourusername"],
+  "iot_class": "local_polling"
+}

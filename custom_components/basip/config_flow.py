@@ -5,7 +5,7 @@ from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_PORT
 from homeassistant.core import HomeAssistant, callback
 import logging
 
-from .const import DOMAIN, DEFAULT_PORT
+from .const import DOMAIN, DEFAULT_PORT, DEFAULT_RTSP_PASSWORD
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -47,6 +47,7 @@ class BASIPConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         CONF_HOST: user_input[CONF_HOST],
                         CONF_PASSWORD: user_input[CONF_PASSWORD],
                         CONF_PORT: user_input.get(CONF_PORT, DEFAULT_PORT),
+                        "rtsp_password": user_input.get("rtsp_password", DEFAULT_RTSP_PASSWORD),
                     }
                 )
             else:
@@ -65,6 +66,7 @@ class BASIPConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             vol.Required(CONF_HOST, default=user_input.get(CONF_HOST, "")): str,
             vol.Required(CONF_PASSWORD, default=user_input.get(CONF_PASSWORD, "")): str,
             vol.Optional(CONF_PORT, default=user_input.get(CONF_PORT, DEFAULT_PORT)): int,
+            vol.Optional("rtsp_password", default=user_input.get("rtsp_password", DEFAULT_RTSP_PASSWORD)): str,
         })
 
         return self.async_show_form(
@@ -74,6 +76,7 @@ class BASIPConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             description_placeholders={
                 "host_help": "Example: 192.168.1.90",
                 "password_help": "Default password is usually 123456",
+                "rtsp_help": "RTSP password for camera stream (default: 1234)",
             }
         )
 
@@ -101,6 +104,11 @@ class BASIPOptionsFlow(config_entries.OptionsFlow):
                 "update_interval",
                 default=self.config_entry.options.get("update_interval", 60)
             ): vol.All(vol.Coerce(int), vol.Range(min=10, max=300)),
+            vol.Optional(
+                "rtsp_password",
+                default=self.config_entry.options.get("rtsp_password", 
+                    self.config_entry.data.get("rtsp_password", DEFAULT_RTSP_PASSWORD))
+            ): str,
         })
 
         return self.async_show_form(step_id="init", data_schema=options)

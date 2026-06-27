@@ -65,7 +65,7 @@ DEFAULT_UPDATE_INTERVAL = 60
 LANGUAGES = ["English", "Russian", "Ukrainian", "Spanish", "Turkish", "Deutsch", "Italian", "French"]
 
 # Supported platforms
-PLATFORMS = [Platform.CAMERA, Platform.LOCK, Platform.SWITCH, Platform.SENSOR]
+PLATFORMS = [Platform.CAMERA, Platform.LOCK, Platform.SWITCH, Platform.SENSOR, Platform.BUTTON]
 
 # Sensor types with their API endpoints and display names
 SENSOR_TYPES = {

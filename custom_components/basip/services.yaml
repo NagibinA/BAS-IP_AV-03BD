@@ -1,15 +1,7 @@
 open_lock:
   name: Open Lock
   description: "Open the door lock"
-  fields:
-    entity_id:
-      name: Lock
-      description: "Lock entity to control"
-      required: true
-      example: "lock.bas_ip_door_lock"
-      selector:
-        entity:
-          domain: lock
+  fields: {}
 
 emergency_open:
   name: Emergency Open
@@ -20,7 +12,6 @@ emergency_open:
       description: "Number of lock to control (1-4)"
       required: false
       default: 1
-      example: 1
       selector:
         number:
           min: 1
@@ -52,10 +43,12 @@ emergency_close:
 reboot:
   name: Reboot
   description: "Reboot the BAS-IP device"
+  fields: {}
 
 take_photo:
   name: Take Photo
   description: "Take a snapshot from the camera"
+  fields: {}
 
 call_start:
   name: Start Call
@@ -72,6 +65,7 @@ call_start:
 call_end:
   name: End Call
   description: "End current call"
+  fields: {}
 
 set_language:
   name: Set Language
@@ -81,7 +75,6 @@ set_language:
       name: Language
       description: "Language code"
       required: true
-      example: "Russian"
       selector:
         select:
           options:
@@ -90,10 +83,9 @@ set_language:
             - "Ukrainian"
             - "Spanish"
             - "Turkish"
-
-get_network_settings:
-  name: Get Network Settings
-  description: "Get current network configuration"
+            - "Deutsch"
+            - "Italian"
+            - "French"
 
 set_static_ip:
   name: Set Static IP
@@ -127,3 +119,4 @@ set_static_ip:
 enable_dhcp:
   name: Enable DHCP
   description: "Switch to DHCP configuration"
+  fields: {}

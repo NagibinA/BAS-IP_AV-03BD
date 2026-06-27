@@ -1,12 +1,15 @@
+"""Sensor platform for BAS-IP."""
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 import logging
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
+    """Set up BAS-IP sensors."""
     coordinator = hass.data[DOMAIN][config_entry.entry_id]
     
     sensors = [
@@ -21,9 +24,12 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     
     async_add_entities(sensors)
 
-class BASIPSensor(SensorEntity):
+class BASIPSensor(CoordinatorEntity, SensorEntity):
+    """Representation of a BAS-IP sensor."""
+
     def __init__(self, coordinator, sensor_type, name, icon=None):
-        self.coordinator = coordinator
+        """Initialize the sensor."""
+        super().__init__(coordinator)
         self._sensor_type = sensor_type
         self._attr_name = f"BAS-IP {name}"
         self._attr_unique_id = f"{coordinator.host}_{sensor_type}"
@@ -37,33 +43,40 @@ class BASIPSensor(SensorEntity):
 
     @property
     def state(self):
-        data = self.coordinator.data
-        if not data:
+        """Return the state of the sensor."""
+        if not self.coordinator.data:
             return STATE_UNAVAILABLE
             
-        value = data.get(self._sensor_type)
+        value = self.coordinator.data.get(self._sensor_type)
         if value is None:
             return STATE_UNKNOWN
             
         if isinstance(value, dict):
             # Извлекаем статус из словаря
             status = value.get("status", value.get("state", "unknown"))
-            return str(status)
+            if isinstance(status, (dict, list)):
+                return str(status)
+            return str(status) if status is not None else STATE_UNKNOWN
+            
         return str(value)
 
     @property
     def extra_state_attributes(self):
-        data = self.coordinator.data
-        value = data.get(self._sensor_type, {})
+        """Return additional attributes."""
+        if not self.coordinator.data:
+            return {}
+            
+        value = self.coordinator.data.get(self._sensor_type)
         if isinstance(value, dict):
             return value
         return {"value": value}
 
-class BASIPTokenSensor(SensorEntity):
-    """Сенсор для отображения статуса токена"""
-    
+class BASIPTokenSensor(CoordinatorEntity, SensorEntity):
+    """Sensor for token status."""
+
     def __init__(self, coordinator, sensor_type, name, icon=None):
-        self.coordinator = coordinator
+        """Initialize the token sensor."""
+        super().__init__(coordinator)
         self._sensor_type = sensor_type
         self._attr_name = f"BAS-IP {name}"
         self._attr_unique_id = f"{coordinator.host}_{sensor_type}"
@@ -77,14 +90,16 @@ class BASIPTokenSensor(SensorEntity):
 
     @property
     def state(self):
+        """Return token status."""
         if not self.coordinator.token:
             return "expired"
         return "valid"
 
     @property
     def extra_state_attributes(self):
+        """Return additional attributes."""
         return {
-            "token_preview": self.coordinator.token[:20] + "..." if self.coordinator.token else None,
-            "expiry": str(self.coordinator.token_expiry) if self.coordinator.token_expiry else None,
             "connected": self.coordinator.connected,
+            "token_preview": self.coordinator.token[:20] + "..." if self.coordinator.token else None,
+            "host": self.coordinator.host,
         }

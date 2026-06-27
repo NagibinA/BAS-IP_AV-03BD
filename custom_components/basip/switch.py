@@ -1,4 +1,7 @@
+"""Switch platform for BAS-IP."""
 from homeassistant.components.switch import SwitchEntity
+from homeassistant.helpers.entity import DeviceInfo
+import asyncio
 from .const import DOMAIN
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
@@ -14,6 +17,12 @@ class BASIPRebootSwitch(SwitchEntity):
         self._attr_name = "BAS-IP Reboot"
         self._attr_unique_id = f"{coordinator.host}_reboot"
         self._attr_is_on = False
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, coordinator.host)},
+            name="BAS-IP Intercom",
+            manufacturer="BAS-IP",
+            model="Intercom Panel",
+        )
 
     async def async_turn_on(self, **kwargs):
         await self.coordinator.async_reboot()
@@ -33,6 +42,12 @@ class BASIPEmergencySwitch(SwitchEntity):
         self._attr_name = "BAS-IP Emergency Mode"
         self._attr_unique_id = f"{coordinator.host}_emergency"
         self._attr_is_on = False
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, coordinator.host)},
+            name="BAS-IP Intercom",
+            manufacturer="BAS-IP",
+            model="Intercom Panel",
+        )
 
     async def async_turn_on(self, **kwargs):
         await self.coordinator.async_emergency_open()

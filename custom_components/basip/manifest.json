@@ -1,12 +1,15 @@
 {
   "domain": "basip",
   "name": "BAS-IP Intercom",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "config_flow": true,
-  "documentation": "https://github.com/yourusername/basip",
-  "issue_tracker": "https://github.com/yourusername/basip/issues",
-  "requirements": ["aiohttp>=3.8.0"],
-  "dependencies": [],
+  "documentation": "https://github.com/NagibinA/BAS-IP_AV-03BD",
+  "issue_tracker": "https://github.com/NagibinA/BAS-IP_AV-03BD/issues",
+  "requirements": [
+    "aiohttp>=3.8.0",
+    "av>=10.0.0"
+  ],
+  "dependencies": ["stream"],
   "codeowners": ["@NagibinA"],
   "iot_class": "local_polling"
 }

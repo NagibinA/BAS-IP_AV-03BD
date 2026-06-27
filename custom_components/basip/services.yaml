@@ -1,0 +1,129 @@
+open_lock:
+  name: Open Lock
+  description: "Open the door lock"
+  fields:
+    entity_id:
+      name: Lock
+      description: "Lock entity to control"
+      required: true
+      example: "lock.bas_ip_door_lock"
+      selector:
+        entity:
+          domain: lock
+
+emergency_open:
+  name: Emergency Open
+  description: "Open lock in emergency mode"
+  fields:
+    lock_number:
+      name: Lock Number
+      description: "Number of lock to control (1-4)"
+      required: false
+      default: 1
+      example: 1
+      selector:
+        number:
+          min: 1
+          max: 4
+    unlock_time:
+      name: Unlock Time
+      description: "Time in milliseconds to keep unlocked"
+      required: false
+      default: 10000
+      selector:
+        number:
+          min: 1000
+          max: 60000
+
+emergency_close:
+  name: Emergency Close
+  description: "Close emergency mode"
+  fields:
+    lock_number:
+      name: Lock Number
+      description: "Number of lock to control (1-4)"
+      required: false
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 4
+
+reboot:
+  name: Reboot
+  description: "Reboot the BAS-IP device"
+
+take_photo:
+  name: Take Photo
+  description: "Take a snapshot from the camera"
+
+call_start:
+  name: Start Call
+  description: "Start outgoing call"
+  fields:
+    number:
+      name: Phone Number
+      description: "Phone number to call"
+      required: true
+      example: "78756"
+      selector:
+        text:
+
+call_end:
+  name: End Call
+  description: "End current call"
+
+set_language:
+  name: Set Language
+  description: "Change device language"
+  fields:
+    language:
+      name: Language
+      description: "Language code"
+      required: true
+      example: "Russian"
+      selector:
+        select:
+          options:
+            - "English"
+            - "Russian"
+            - "Ukrainian"
+            - "Spanish"
+            - "Turkish"
+
+get_network_settings:
+  name: Get Network Settings
+  description: "Get current network configuration"
+
+set_static_ip:
+  name: Set Static IP
+  description: "Configure static IP address"
+  fields:
+    ip_address:
+      name: IP Address
+      required: true
+      example: "192.168.1.100"
+      selector:
+        text:
+    mask:
+      name: Subnet Mask
+      required: true
+      example: "255.255.255.0"
+      selector:
+        text:
+    gateway:
+      name: Gateway
+      required: true
+      example: "192.168.1.1"
+      selector:
+        text:
+    dns:
+      name: DNS Server
+      required: true
+      example: "8.8.8.8"
+      selector:
+        text:
+
+enable_dhcp:
+  name: Enable DHCP
+  description: "Switch to DHCP configuration"

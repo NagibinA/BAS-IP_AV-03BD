@@ -12,14 +12,15 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the BAS-IP camera platform."""
     coordinator = hass.data[DOMAIN][config_entry.entry_id]
     
-    # Получаем RTSP пароль из настроек
+    # Получаем RTSP пароль из настроек интеграции
     rtsp_password = config_entry.data.get("rtsp_password", DEFAULT_RTSP_PASSWORD)
     
-    # Получаем RTSP настройки с устройства
+    # Получаем RTSP настройки с устройства (логин читаем из панели)
     rtsp_data = await coordinator.async_request(API_DEVICE_RTSP, "GET")
     
     if rtsp_data and isinstance(rtsp_data, dict):
         username = rtsp_data.get("username", "user")
+        _LOGGER.debug(f"RTSP username from device: {username}")
     else:
         username = "user"
         _LOGGER.warning("Could not get RTSP username from device, using default: user")
@@ -71,6 +72,6 @@ class BASIPCamera(CoordinatorEntity, Camera):
     def extra_state_attributes(self):
         """Return additional attributes."""
         return {
-            "rtsp_url": self._rtsp_url.replace(self.coordinator.password, "****"),
+            "rtsp_url": self._rtsp_url,
             "is_streaming": self.is_streaming,
         }

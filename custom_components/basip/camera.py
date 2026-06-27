@@ -12,18 +12,21 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the BAS-IP camera platform."""
     coordinator = hass.data[DOMAIN][config_entry.entry_id]
     
-    # Получаем RTSP настройки для формирования URL
+    # Получаем RTSP настройки
     rtsp_data = await coordinator.async_request(API_DEVICE_RTSP, "GET")
     
     if rtsp_data and isinstance(rtsp_data, dict):
         username = rtsp_data.get("username", "user")
-        # Пароль обычно тот же, что и для входа в панель
-        password = coordinator.password
-        rtsp_url = f"rtsp://{username}:{password}@{coordinator.host}:8554/ch01"
+        # RTSP пароль может отличаться от пароля панели
+        # В вашем случае: rtsp://user:1234@...
+        rtsp_password = "1234"  # Можно сделать настраиваемым через options
     else:
-        # Если не удалось получить настройки, используем стандартные
-        rtsp_url = f"rtsp://user:{coordinator.password}@{coordinator.host}:8554/ch01"
-        _LOGGER.warning("Using default RTSP URL: %s", rtsp_url)
+        username = "user"
+        rtsp_password = "1234"  # Значение по умолчанию
+    
+    rtsp_url = f"rtsp://{username}:{rtsp_password}@{coordinator.host}:8554/ch01"
+    
+    _LOGGER.info(f"RTSP URL configured: {rtsp_url}")
     
     async_add_entities([BASIPCamera(coordinator, rtsp_url)])
 
@@ -44,17 +47,11 @@ class BASIPCamera(CoordinatorEntity, Camera):
             model="Intercom Panel",
         )
         self._image = None
-        self._last_image_update = None
 
     @property
     def is_streaming(self) -> bool:
         """Return True if the camera supports streaming."""
         return True
-
-    @property
-    def use_stream_for_stills(self) -> bool:
-        """Return True if still images should be taken from the stream."""
-        return False
 
     async def stream_source(self):
         """Return the RTSP stream source."""
@@ -63,9 +60,7 @@ class BASIPCamera(CoordinatorEntity, Camera):
     async def async_camera_image(self, width=None, height=None):
         """Take a snapshot from the camera."""
         try:
-            # Получаем фото через API
             self._image = await self.coordinator.async_get_photo()
-            self._last_image_update = self.coordinator.hass.loop.time()
             return self._image
         except Exception as e:
             _LOGGER.error(f"Error taking snapshot: {e}")

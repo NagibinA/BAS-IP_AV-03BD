@@ -7,6 +7,6 @@
   "issue_tracker": "https://github.com/yourusername/basip/issues",
   "requirements": ["aiohttp>=3.8.0"],
   "dependencies": [],
-  "codeowners": ["@yourusername"],
+  "codeowners": ["@NagibinA"],
   "iot_class": "local_polling"
 }

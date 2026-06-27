@@ -1,3 +1,6 @@
+"""Constants for BAS-IP Intercom integration."""
+from homeassistant.const import Platform
+
 DOMAIN = "basip"
 MANUFACTURER = "BAS-IP"
 MODEL = "Intercom Panel"
@@ -44,14 +47,19 @@ TOKEN_RENEWAL_MINUTES = 5
 # Update intervals
 DEFAULT_UPDATE_INTERVAL = 60  # seconds
 
-# Supported platforms
-PLATFORMS = ["camera", "lock", "switch", "sensor"]
-
 # Supported languages
 LANGUAGES = [
     "English",
-    "Russian", 
+    "Russian",
     "Ukrainian",
     "Spanish",
-    "Turkish"
+    "Turkish",
+]
+
+# Supported platforms (using Platform enum for HA 2026.x compatibility)
+PLATFORMS = [
+    Platform.CAMERA,
+    Platform.LOCK,
+    Platform.SWITCH,
+    Platform.SENSOR,
 ]

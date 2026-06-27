@@ -18,6 +18,7 @@ class BASIPCoordinator(DataUpdateCoordinator):
         self.host = config.get(CONF_HOST)
         self.port = config.get(CONF_PORT, DEFAULT_PORT)
         self.password = config.get(CONF_PASSWORD)
+        self.rtsp_password = config.get("rtsp_password", DEFAULT_RTSP_PASSWORD)
         self.token = None
         self.token_expiry = None
         self.base_url = f"http://{self.host}:{self.port}"
@@ -140,7 +141,6 @@ class BASIPCoordinator(DataUpdateCoordinator):
                         key = f"{sensor_key}_{lock_num}"
                         data[key] = await self.async_request(endpoint.replace("{lockNumber}", str(lock_num)), "GET")
                 elif ":apartmentUid" in endpoint:
-                    # Для apartment требуется UID, пока пропускаем
                     continue
                 else:
                     data[sensor_key] = await self.async_request(endpoint, "GET")

@@ -34,7 +34,6 @@ class BASIPSensor(CoordinatorEntity, SensorEntity):
         if value is None:
             return STATE_UNKNOWN
         if isinstance(value, dict):
-            # Извлекаем ключевое значение в зависимости от типа сенсора
             if self._sensor_key == "sip_status":
                 return value.get("sip_status", STATE_UNKNOWN)
             elif self._sensor_key == "network_mac":

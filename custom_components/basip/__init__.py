@@ -1,6 +1,6 @@
+"""BAS-IP Intercom integration."""
 import logging
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_PORT
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import config_validation as cv
 import voluptuous as vol
@@ -9,18 +9,35 @@ from .coordinator import BASIPCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
-CONFIG_SCHEMA = vol.Schema({
-    DOMAIN: vol.Schema({
-        vol.Required(CONF_HOST): cv.string,
-        vol.Required(CONF_PASSWORD): cv.string,
-        vol.Optional(CONF_PORT, default=80): cv.port,
-    })
-}, extra=vol.ALLOW_EXTRA)
+# Схемы для сервисов
+LOCK_NUMBER_SCHEMA = vol.Schema({
+    vol.Optional("lock_number", default=1): cv.positive_int,
+})
+
+EMERGENCY_SCHEMA = vol.Schema({
+    vol.Optional("lock_number", default=1): cv.positive_int,
+    vol.Optional("unlock_time", default=10000): cv.positive_int,
+})
+
+CALL_SCHEMA = vol.Schema({
+    vol.Required("number"): cv.string,
+})
+
+LANGUAGE_SCHEMA = vol.Schema({
+    vol.Required("language"): vol.In(["English", "Russian", "Ukrainian", "Spanish", "Turkish"]),
+})
+
+IP_CONFIG_SCHEMA = vol.Schema({
+    vol.Required("ip_address"): cv.string,
+    vol.Required("mask"): cv.string,
+    vol.Required("gateway"): cv.string,
+    vol.Required("dns"): cv.string,
+})
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up BAS-IP from a config entry."""
     
-    _LOGGER.info("Setting up BAS-IP integration for %s", entry.data[CONF_HOST])
+    _LOGGER.info("Setting up BAS-IP integration for %s", entry.data.get("host", "unknown"))
     
     # Инициализируем координатор
     coordinator = BASIPCoordinator(hass, entry.data)
@@ -33,6 +50,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     
     _LOGGER.info("Successfully authenticated with BAS-IP")
     
+    # Сохраняем координатор в hass.data
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = coordinator
     
@@ -46,31 +64,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_register_services(hass: HomeAssistant, coordinator: BASIPCoordinator):
     """Register services for BAS-IP integration."""
-    
-    # Схема для сервисов
-    LOCK_NUMBER_SCHEMA = vol.Schema({
-        vol.Optional("lock_number", default=1): cv.positive_int,
-    })
-    
-    EMERGENCY_SCHEMA = vol.Schema({
-        vol.Optional("lock_number", default=1): cv.positive_int,
-        vol.Optional("unlock_time", default=10000): cv.positive_int,
-    })
-    
-    CALL_SCHEMA = vol.Schema({
-        vol.Required("number"): cv.string,
-    })
-    
-    LANGUAGE_SCHEMA = vol.Schema({
-        vol.Required("language"): vol.In(["English", "Russian", "Ukrainian", "Spanish", "Turkish"]),
-    })
-    
-    IP_CONFIG_SCHEMA = vol.Schema({
-        vol.Required("ip_address"): cv.string,
-        vol.Required("mask"): cv.string,
-        vol.Required("gateway"): cv.string,
-        vol.Required("dns"): cv.string,
-    })
     
     async def handle_open_lock(service_call: ServiceCall):
         """Handle open lock service."""
@@ -148,13 +141,15 @@ async def async_register_services(hass: HomeAssistant, coordinator: BASIPCoordin
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
+    _LOGGER.info("Unloading BAS-IP integration")
+    
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         hass.data[DOMAIN].pop(entry.entry_id)
     
     # Удаляем сервисы
     services = [
-        "open_lock", "emergency_open", "emergency_close", 
+        "open_lock", "emergency_open", "emergency_close",
         "reboot", "take_photo", "call_start", "call_end",
         "set_language", "set_static_ip", "enable_dhcp"
     ]

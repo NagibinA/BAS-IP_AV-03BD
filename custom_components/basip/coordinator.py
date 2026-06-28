@@ -18,7 +18,6 @@ class BASIPCoordinator(DataUpdateCoordinator):
         self.host = config.get(CONF_HOST)
         self.port = config.get(CONF_PORT, DEFAULT_PORT)
         self.password = config.get(CONF_PASSWORD)
-        self.rtsp_password = config.get("rtsp_password", DEFAULT_RTSP_PASSWORD)
         self.token = None
         self.token_expiry = None
         self.base_url = f"http://{self.host}:{self.port}"

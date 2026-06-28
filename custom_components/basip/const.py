@@ -51,7 +51,6 @@ API_NETWORK_DHCP = "/api/v1/network/settings/dhcp"
 # Default settings
 DEFAULT_PASSWORD = "123456"
 DEFAULT_PORT = 80
-DEFAULT_RTSP_PASSWORD = "1234"
 TIMEOUT = 10
 
 # Token settings

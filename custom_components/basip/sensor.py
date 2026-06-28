@@ -1,7 +1,7 @@
 """Sensor platform for BAS-IP."""
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
-from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import DOMAIN, SENSOR_TYPES
 
@@ -19,6 +19,7 @@ class BASIPSensor(CoordinatorEntity, SensorEntity):
         self._attr_name = f"BAS-IP {sensor_info['name']}"
         self._attr_unique_id = f"{coordinator.host}_{sensor_key}"
         self._attr_icon = sensor_info.get("icon", "mdi:information")
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, coordinator.host)},
             name="BAS-IP Intercom",

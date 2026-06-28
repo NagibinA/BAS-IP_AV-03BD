@@ -20,6 +20,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     sensors.append(BASIPExitButtonSensor(coordinator))
     sensors.append(BASIPDoorSensor(coordinator))
     sensors.append(BASIPDoorOpenTooLongSensor(coordinator))
+    sensors.append(BASIPExitButtonStatusSensor(coordinator))
     
     async_add_entities(sensors)
 
@@ -77,8 +78,6 @@ class BASIPSensor(CoordinatorEntity, SensorEntity):
                 return value.get("master_card", STATE_UNKNOWN)
             elif self._sensor_key == "input_code":
                 return value.get("input_code_number", STATE_UNKNOWN)
-            elif "lock_timeout" in self._sensor_key:
-                return value.get("lock_timeout", STATE_UNKNOWN)
             elif self._sensor_key == "network_ntp":
                 return value.get("custom_server", STATE_UNKNOWN)
             elif self._sensor_key == "network_dst":
@@ -105,6 +104,10 @@ class BASIPSensor(CoordinatorEntity, SensorEntity):
                 return value.get("ip_address", STATE_UNKNOWN)
             elif self._sensor_key == "info":
                 return value.get("device_name", STATE_UNKNOWN)
+            elif self._sensor_key == "door_sensor_settings":
+                return f"Delay: {value.get('opening_delay', 'N/A')}s"
+            elif self._sensor_key == "exit_button_status":
+                return "Enabled" if value.get("enable") else "Disabled"
             return str(value)
         return str(value)
 
@@ -147,9 +150,11 @@ class BASIPDoorbellSensor(CoordinatorEntity, BinarySensorEntity):
 
 
 class BASIPExitButtonSensor(CoordinatorEntity, BinarySensorEntity):
+    """Сенсор для отслеживания нажатия кнопки выхода (внутри)."""
+
     def __init__(self, coordinator):
         super().__init__(coordinator)
-        self._attr_name = "BAS-IP Exit Button"
+        self._attr_name = "BAS-IP Exit Button Pressed"
         self._attr_unique_id = f"{coordinator.host}_exit_button"
         self._attr_icon = "mdi:exit-run"
         self._attr_device_info = DeviceInfo(
@@ -161,20 +166,25 @@ class BASIPExitButtonSensor(CoordinatorEntity, BinarySensorEntity):
 
     @property
     def is_on(self) -> bool:
+        if not self.coordinator._exit_button_enabled:
+            return None
         return self.coordinator._exit_button_state
 
     @property
     def available(self) -> bool:
-        return self.coordinator.connected
+        return self.coordinator.connected and self.coordinator._exit_button_enabled
 
     @property
     def extra_state_attributes(self):
         return {
             "last_event_timestamp": self.coordinator._last_exit_timestamp,
+            "exit_button_enabled": self.coordinator._exit_button_enabled,
         }
 
 
 class BASIPDoorSensor(CoordinatorEntity, BinarySensorEntity):
+    """Сенсор состояния двери (открыта/закрыта)."""
+
     def __init__(self, coordinator):
         super().__init__(coordinator)
         self._attr_name = "BAS-IP Door"
@@ -204,8 +214,6 @@ class BASIPDoorSensor(CoordinatorEntity, BinarySensorEntity):
 
 
 class BASIPDoorOpenTooLongSensor(CoordinatorEntity, BinarySensorEntity):
-    """Бинарный сенсор 'дверь открыта слишком долго'."""
-
     def __init__(self, coordinator):
         super().__init__(coordinator)
         self._attr_name = "BAS-IP Door Open Too Long"
@@ -232,3 +240,33 @@ class BASIPDoorOpenTooLongSensor(CoordinatorEntity, BinarySensorEntity):
         return {
             "last_event_timestamp": self.coordinator._last_door_open_too_long_timestamp,
         }
+
+
+class BASIPExitButtonStatusSensor(CoordinatorEntity, BinarySensorEntity):
+    """Сенсор для отслеживания включена ли функция кнопки выхода."""
+
+    def __init__(self, coordinator):
+        super().__init__(coordinator)
+        self._attr_name = "BAS-IP Exit Button Enabled"
+        self._attr_unique_id = f"{coordinator.host}_exit_button_enabled"
+        self._attr_icon = "mdi:exit-run"
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+        self._attr_is_on = False
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, coordinator.host)},
+            name="BAS-IP Intercom",
+            manufacturer="BAS-IP",
+            model="Intercom Panel",
+        )
+
+    @property
+    def is_on(self) -> bool:
+        return self.coordinator._exit_button_enabled
+
+    @property
+    def available(self) -> bool:
+        return self.coordinator.connected
+
+    @property
+    def extra_state_attributes(self):
+        return {}

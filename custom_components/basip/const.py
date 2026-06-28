@@ -35,7 +35,6 @@ API_LOCK_OPEN = "/api/v1/access/general/lock/open/remote/accepted/1"
 API_LOCK_EMERGENCY_OPEN = "/api/v1/access/general/lock/open/emergency"
 API_LOCK_EMERGENCY_CLOSE = "/api/v1/access/general/lock/close/emergency"
 API_LOCK_TYPE = "/api/v1/access/general/lock/type"
-API_LOCK_TIMEOUT = "/api/v1/access/general/lock/timeout"
 API_MASTER_CARD = "/api/v1/access/general/unlock/card/master"
 API_INPUT_CODE = "/api/v1/access/general/unlock/input/code"
 API_APARTMENT_ITEM = "/api/v1/apartment/item"
@@ -44,6 +43,9 @@ API_REBOOT = "/api/v1/system/reboot/run"
 API_CALL_START = "/api/v1/system/debug/call/start"
 API_CALL_END = "/api/v1/system/debug/call/end"
 API_LOGS_ITEMS = "/api/v1/log/items"
+API_DOOR_STATUS = "/api/v1/access/door/status"
+API_DOOR_SENSOR = "/api/v1/access/door/sensor"
+API_EXIT_BUTTON = "/api/v1/access/exit/button/toggle"
 
 # Network settings
 API_NETWORK_STATIC = "/api/v1/network/settings/static"
@@ -95,4 +97,6 @@ SENSOR_TYPES = {
     "lock_type": {"endpoint": API_LOCK_TYPE, "name": "Lock Type", "icon": "mdi:lock"},
     "master_card": {"endpoint": API_MASTER_CARD, "name": "Master Card", "icon": "mdi:credit-card"},
     "input_code": {"endpoint": API_INPUT_CODE, "name": "Access Code", "icon": "mdi:keyboard"},
+    "door_sensor_settings": {"endpoint": API_DOOR_SENSOR, "name": "Door Sensor Settings", "icon": "mdi:door-sensor"},
+    "exit_button_status": {"endpoint": API_EXIT_BUTTON, "name": "Exit Button Status", "icon": "mdi:exit-run"},
 }

@@ -27,6 +27,7 @@ class BASIPCoordinator(DataUpdateCoordinator):
         self._exit_button_state = False
         self._door_state = False
         self._door_open_too_long = False
+        self._exit_button_enabled = False  # ← ДОБАВЛЕНО
         
         self._last_doorbell_timestamp = None
         self._last_exit_timestamp = None
@@ -121,101 +122,83 @@ class BASIPCoordinator(DataUpdateCoordinator):
             _LOGGER.warning(f"Failed to get logs: {e}")
             return None
 
-    async def async_init_door_open_too_long(self):
-        """При старте проверить, есть ли событие lock_is_opened_to_long в логах."""
+    async def async_get_door_status(self):
         try:
-            logs = await self.async_get_logs(limit=10)
-            if not logs or not isinstance(logs, dict):
-                return
-            
-            items = logs.get("list_items", [])
-            if not items:
-                return
-            
-            for item in items:
-                name_key = item.get("name", {}).get("key", "")
-                if name_key == "lock_is_opened_to_long":
-                    self._door_open_too_long = True
-                    self._last_door_open_too_long_timestamp = item.get("timestamp")
-                    self.async_update_listeners()
-                    _LOGGER.info("🔵 Initial door_open_too_long set to: True")
-                    return
-            
-            self._door_open_too_long = False
-            self.async_update_listeners()
-            _LOGGER.info("🔵 Initial door_open_too_long set to: False")
-            
+            return await self.async_request(API_DOOR_STATUS, "GET")
         except Exception as e:
-            _LOGGER.warning(f"Failed to initialize door_open_too_long: {e}")
+            _LOGGER.warning(f"Failed to get door status: {e}")
+            return None
+
+    async def async_check_door_open_too_long(self) -> bool:
+        status = await self.async_get_door_status()
+        if not status or not isinstance(status, dict):
+            return False
+        
+        if status.get("is_timeout_exceed"):
+            self._last_door_open_too_long_timestamp = int(datetime.now().timestamp() * 1000)
+        else:
+            self._last_door_open_too_long_timestamp = None
+        
+        return status.get("is_timeout_exceed", False)
+
+    async def async_check_door_state(self) -> bool:
+        status = await self.async_get_door_status()
+        if not status or not isinstance(status, dict):
+            return self._door_state
+        
+        is_open = status.get("status") == "open"
+        if is_open:
+            self._last_door_timestamp = int(datetime.now().timestamp() * 1000)
+        return is_open
+
+    async def async_check_exit_button_enabled(self) -> bool:
+        """Проверить, включена ли функция кнопки выхода."""
+        try:
+            result = await self.async_request(API_EXIT_BUTTON, "GET")
+            if result and isinstance(result, dict):
+                return result.get("enable", False)
+            return False
+        except Exception as e:
+            _LOGGER.warning(f"Failed to get exit button status: {e}")
+            return False
 
     async def async_check_events(self) -> tuple:
         doorbell = False
         exit_button = False
-        door_open = self._door_state
-        door_open_too_long = self._door_open_too_long
-        
-        _LOGGER.debug(f"Checking events... Current door_open_too_long: {door_open_too_long}")
+        door_open_too_long = await self.async_check_door_open_too_long()
+        door_state = await self.async_check_door_state()
+        exit_button_enabled = await self.async_check_exit_button_enabled()
         
         try:
             logs = await self.async_get_logs(limit=10)
-            if not logs or not isinstance(logs, dict):
-                _LOGGER.debug("No logs received or invalid format")
-                return doorbell, exit_button, door_open, door_open_too_long
+            if logs and isinstance(logs, dict):
+                items = logs.get("list_items", [])
+                now = datetime.now()
+                for item in items:
+                    name_key = item.get("name", {}).get("key", "")
+                    timestamp_ms = item.get("timestamp")
+                    if not timestamp_ms:
+                        continue
+                    
+                    timestamp_sec = timestamp_ms / 1000
+                    event_time = datetime.fromtimestamp(timestamp_sec)
+                    if now - event_time > timedelta(seconds=3):
+                        continue
+                    
+                    if name_key == "outgoing_call":
+                        doorbell = True
+                        self._last_doorbell_timestamp = timestamp_ms
+                    elif name_key == "lock_was_opened_by_exit_btn":
+                        exit_button = True
+                        self._last_exit_timestamp = timestamp_ms
             
-            items = logs.get("list_items", [])
-            if not items:
-                _LOGGER.debug("No items in logs")
-                return doorbell, exit_button, door_open, door_open_too_long
-            
-            _LOGGER.debug(f"Processing {len(items)} log items")
-            
-            for item in items:
-                name_key = item.get("name", {}).get("key", "")
-                timestamp_ms = item.get("timestamp")
-                if not timestamp_ms:
-                    continue
-                
-                if name_key == "lock_is_opened_to_long":
-                    door_open_too_long = True
-                    self._last_door_open_too_long_timestamp = timestamp_ms
-                    _LOGGER.info("🔴 DOOR OPEN TOO LONG DETECTED!")
-                    continue
-                
-                timestamp_sec = timestamp_ms / 1000
-                event_time = datetime.fromtimestamp(timestamp_sec)
-                if datetime.now() - event_time > timedelta(seconds=3):
-                    continue
-                
-                if name_key == "outgoing_call":
-                    doorbell = True
-                    self._last_doorbell_timestamp = timestamp_ms
-                    _LOGGER.debug("Doorbell event detected")
-                elif name_key == "lock_was_opened_by_exit_btn":
-                    exit_button = True
-                    self._last_exit_timestamp = timestamp_ms
-                    _LOGGER.debug("Exit button event detected")
-                elif name_key == "door_was_opened":
-                    door_open = True
-                    self._last_door_timestamp = timestamp_ms
-                    _LOGGER.debug("Door opened event detected")
-                elif name_key == "door_was_closed":
-                    door_open = False
-                    self._last_door_timestamp = timestamp_ms
-                    if self._door_open_too_long:
-                        door_open_too_long = False
-                        self._last_door_open_too_long_timestamp = None
-                        _LOGGER.info("🔵 Door open too long reset (door closed)")
-            
-            _LOGGER.debug(f"Final states: doorbell={doorbell}, exit_button={exit_button}, door_open={door_open}, door_open_too_long={door_open_too_long}")
-            return doorbell, exit_button, door_open, door_open_too_long
+            return doorbell, exit_button, door_open_too_long, door_state, exit_button_enabled
         except Exception as e:
             _LOGGER.warning(f"Failed to check events: {e}")
-            return doorbell, exit_button, door_open, door_open_too_long
+            return doorbell, exit_button, door_open_too_long, door_state, exit_button_enabled
 
     async def _async_button_updater(self):
-        _LOGGER.info("🔄 Button updater started")
-        
-        await self.async_init_door_open_too_long()
+        _LOGGER.info("🔄 Button updater started (interval: 1s)")
         
         while not self._button_stop:
             try:
@@ -225,7 +208,7 @@ class BASIPCoordinator(DataUpdateCoordinator):
                         await asyncio.sleep(5)
                         continue
                 
-                doorbell, exit_button, door_open, door_open_too_long = await self.async_check_events()
+                doorbell, exit_button, door_open_too_long, door_state, exit_button_enabled = await self.async_check_events()
                 
                 if doorbell != self._doorbell_state:
                     self._doorbell_state = doorbell
@@ -235,19 +218,24 @@ class BASIPCoordinator(DataUpdateCoordinator):
                 if exit_button != self._exit_button_state:
                     self._exit_button_state = exit_button
                     self.async_update_listeners()
-                    _LOGGER.info(f"🚪 Exit button state changed to: {exit_button}")
+                    _LOGGER.info(f"🚪 Exit button pressed changed to: {exit_button}")
                 
-                if door_open != self._door_state:
-                    self._door_state = door_open
+                if door_state != self._door_state:
+                    self._door_state = door_state
                     self.async_update_listeners()
-                    _LOGGER.info(f"🚪 Door state changed to: {door_open}")
+                    _LOGGER.info(f"🚪 Door state changed to: {door_state}")
                 
                 if door_open_too_long != self._door_open_too_long:
                     self._door_open_too_long = door_open_too_long
                     self.async_update_listeners()
                     _LOGGER.info(f"⏰ Door open too long changed to: {door_open_too_long}")
                 
-                await asyncio.sleep(3)
+                if exit_button_enabled != self._exit_button_enabled:
+                    self._exit_button_enabled = exit_button_enabled
+                    self.async_update_listeners()
+                    _LOGGER.info(f"🔘 Exit button enabled changed to: {exit_button_enabled}")
+                
+                await asyncio.sleep(1)
             except Exception as e:
                 _LOGGER.error(f"Button updater error: {e}")
                 await asyncio.sleep(5)

@@ -43,6 +43,7 @@ API_PHOTO = "/api/v1/photo/file"
 API_REBOOT = "/api/v1/system/reboot/run"
 API_CALL_START = "/api/v1/system/debug/call/start"
 API_CALL_END = "/api/v1/system/debug/call/end"
+API_LOGS_ITEMS = "/api/v1/log/items"
 
 # Network settings
 API_NETWORK_STATIC = "/api/v1/network/settings/static"

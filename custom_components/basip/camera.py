@@ -36,6 +36,7 @@ class BASIPCamera(Camera):
         self._image = None
         self._rtsp_url = None
         self._rtsp_username = None
+        self._rtsp_password = None
         self._rtsp_configured = False
         self._stream = None
         self.access_tokens = [secrets.token_hex(32)]
@@ -46,15 +47,18 @@ class BASIPCamera(Camera):
         await super().async_added_to_hass()
         
         try:
+            # Получаем RTSP настройки с панели
             rtsp_data = await self.coordinator.async_request(API_DEVICE_RTSP, "GET")
             if rtsp_data and isinstance(rtsp_data, dict):
                 self._rtsp_username = rtsp_data.get("username", "user")
+                self._rtsp_password = rtsp_data.get("password", "1234")
+                _LOGGER.info(f"RTSP credentials received from panel")
             else:
                 self._rtsp_username = "user"
-                _LOGGER.warning("Could not get RTSP username, using default: user")
+                self._rtsp_password = "1234"
+                _LOGGER.warning("Could not get RTSP credentials, using defaults")
             
-            rtsp_password = self.coordinator.rtsp_password
-            self._rtsp_url = f"rtsp://{self._rtsp_username}:{rtsp_password}@{self.coordinator.host}:8554/ch01"
+            self._rtsp_url = f"rtsp://{self._rtsp_username}:{self._rtsp_password}@{self.coordinator.host}:8554/ch01"
             self._rtsp_configured = True
             _LOGGER.info(f"RTSP URL configured")
             
@@ -64,18 +68,18 @@ class BASIPCamera(Camera):
                     self._rtsp_url,
                     options={
                         "rtsp_transport": "tcp",
-                        "segment_duration": 2,           # Минимальная задержка
-                        "part_duration": 0.5,            # LL-HLS
-                        "analyzeduration": 1000000,      # Уменьшен для скорости
-                        "probesize": 1000000,            # Уменьшен для скорости
-                        "buffer_size": 512000,           # 512 КБ — меньше задержка
-                        "max_delay": 300000,             # 0.3 секунды
-                        "reorder_queue_size": 512,       # Меньше очередь
+                        "segment_duration": 2,
+                        "part_duration": 0.5,
+                        "analyzeduration": 1000000,
+                        "probesize": 1000000,
+                        "buffer_size": 512000,
+                        "max_delay": 300000,
+                        "reorder_queue_size": 512,
                         "flags": "low_delay",
                     }
                 )
                 await self._stream.async_setup()
-                _LOGGER.info("RTSP stream registered with low-latency settings")
+                _LOGGER.info("RTSP stream registered")
             
         except Exception as e:
             _LOGGER.error(f"Error setting up RTSP: {e}")

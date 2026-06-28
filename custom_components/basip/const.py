@@ -93,7 +93,6 @@ SENSOR_TYPES = {
     "device_relay": {"endpoint": API_DEVICE_RELAY, "name": "Relay Settings", "icon": "mdi:relay"},
     "device_mode": {"endpoint": API_DEVICE_MODE, "name": "Mode", "icon": "mdi:cog"},
     "lock_type": {"endpoint": API_LOCK_TYPE, "name": "Lock Type", "icon": "mdi:lock"},
-    "lock_timeout": {"endpoint": API_LOCK_TIMEOUT, "name": "Lock Timeout", "icon": "mdi:lock-clock"},
     "master_card": {"endpoint": API_MASTER_CARD, "name": "Master Card", "icon": "mdi:credit-card"},
     "input_code": {"endpoint": API_INPUT_CODE, "name": "Access Code", "icon": "mdi:keyboard"},
 }

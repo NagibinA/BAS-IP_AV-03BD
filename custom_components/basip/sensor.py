@@ -1,16 +1,25 @@
 """Sensor platform for BAS-IP."""
 from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import DOMAIN, SENSOR_TYPES
+import logging
+
+_LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     coordinator = hass.data[DOMAIN][config_entry.entry_id]
     sensors = []
+    
     for sensor_key, sensor_info in SENSOR_TYPES.items():
         sensors.append(BASIPSensor(coordinator, sensor_key, sensor_info))
+    
+    sensors.append(BASIPButtonPressedSensor(coordinator))
+    
     async_add_entities(sensors)
+
 
 class BASIPSensor(CoordinatorEntity, SensorEntity):
     def __init__(self, coordinator, sensor_key, sensor_info):
@@ -104,3 +113,37 @@ class BASIPSensor(CoordinatorEntity, SensorEntity):
         if isinstance(value, dict):
             return value
         return {"value": value}
+
+
+class BASIPButtonPressedSensor(CoordinatorEntity, BinarySensorEntity):
+    """Бинарный сенсор для отслеживания нажатия кнопки вызова (исходящий звонок)."""
+
+    def __init__(self, coordinator):
+        super().__init__(coordinator)
+        self._attr_name = "BAS-IP Button Pressed"
+        self._attr_unique_id = f"{coordinator.host}_button_pressed"
+        self._attr_icon = "mdi:doorbell"
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+        self._attr_is_on = False
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, coordinator.host)},
+            name="BAS-IP Intercom",
+            manufacturer="BAS-IP",
+            model="Intercom Panel",
+        )
+
+    @property
+    def is_on(self) -> bool:
+        if not self.coordinator.data:
+            return False
+        return self.coordinator.data.get("button_pressed", False)
+
+    @property
+    def available(self) -> bool:
+        return self.coordinator.connected
+
+    @property
+    def extra_state_attributes(self):
+        return {
+            "last_event_timestamp": self.coordinator._last_event_timestamp,
+        }

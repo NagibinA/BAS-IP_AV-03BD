@@ -22,26 +22,31 @@ class BASIPCoordinator(DataUpdateCoordinator):
         self.token_expiry = None
         self.base_url = f"http://{self.host}:{self.port}"
         self.connected = False
-        self._last_event_timestamp = None
+        
+        self._doorbell_state = False
+        self._exit_button_state = False
+        self._door_state = False
+        self._door_open_too_long = False
+        
+        self._last_doorbell_timestamp = None
+        self._last_exit_timestamp = None
+        self._last_door_timestamp = None
+        self._last_door_open_too_long_timestamp = None
+        
+        self._button_task = None
+        self._button_stop = False
+        
         super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=timedelta(seconds=60))
 
     async def _async_update_data(self):
         try:
             async with async_timeout.timeout(10):
-                if not self.token or await self._is_token_expired():
+                if not self.token:
                     await self.async_login()
-                
-                data = await self.async_fetch_all_data()
-                data["button_pressed"] = await self.async_check_outgoing_call()
-                return data
+                return await self.async_fetch_all_data()
         except Exception as error:
             _LOGGER.error(f"Error updating: {error}")
             raise UpdateFailed(f"Error: {error}")
-
-    async def _is_token_expired(self):
-        if not self.token_expiry:
-            return True
-        return datetime.now() > self.token_expiry - timedelta(minutes=5)
 
     def _hash_password(self, password):
         return hashlib.md5(password.encode()).hexdigest()
@@ -68,26 +73,32 @@ class BASIPCoordinator(DataUpdateCoordinator):
             self.connected = False
             return False
 
-    async def _ensure_valid_token(self):
-        if not self.token or await self._is_token_expired():
-            await self.async_login()
-        return self.token is not None
-
     async def async_request(self, endpoint, method="GET", data=None, json_data=None, retry_count=2):
-        if not await self._ensure_valid_token():
-            return None
+        if not self.token:
+            await self.async_login()
+            if not self.token:
+                return None
+        
         url = f"{self.base_url}{endpoint}"
         headers = {"Authorization": self.token, "Content-Type": "application/json"}
+        
         async with aiohttp.ClientSession() as session:
             for attempt in range(retry_count):
                 try:
                     async with session.request(method, url, headers=headers, data=data, json=json_data, timeout=10) as resp:
                         if resp.status == 401:
+                            _LOGGER.warning("Token expired, re-authenticating...")
                             await self.async_login()
-                            headers["Authorization"] = self.token
-                            continue
+                            if self.token:
+                                headers["Authorization"] = self.token
+                                continue
+                            else:
+                                _LOGGER.error("Re-authentication failed")
+                                return None
+                        
                         if resp.status != 200:
                             return None
+                        
                         content_type = resp.headers.get("content-type", "")
                         if "application/json" in content_type:
                             return await resp.json()
@@ -101,39 +112,162 @@ class BASIPCoordinator(DataUpdateCoordinator):
         return None
 
     async def async_get_logs(self, limit: int = 10, page_number: int = 1):
-        """Получить список событий."""
         try:
             url = f"{API_LOGS_ITEMS}?limit={limit}&page_number={page_number}"
-            return await self.async_request(url, "GET")
+            result = await self.async_request(url, "GET")
+            _LOGGER.debug(f"Logs response received: {result is not None}")
+            return result
         except Exception as e:
             _LOGGER.warning(f"Failed to get logs: {e}")
             return None
 
-    async def async_check_outgoing_call(self) -> bool:
-        """Проверить, была ли нажата кнопка вызова за последние 10 секунд."""
+    async def async_init_door_open_too_long(self):
+        """При старте проверить, есть ли событие lock_is_opened_to_long в логах."""
         try:
             logs = await self.async_get_logs(limit=10)
             if not logs or not isinstance(logs, dict):
-                return False
+                return
             
             items = logs.get("list_items", [])
             if not items:
-                return False
+                return
             
-            now = datetime.now()
             for item in items:
                 name_key = item.get("name", {}).get("key", "")
-                if name_key == "outgoing_call":
-                    timestamp = item.get("timestamp")
-                    if timestamp:
-                        event_time = datetime.fromtimestamp(timestamp)
-                        if now - event_time < timedelta(seconds=10):
-                            self._last_event_timestamp = timestamp
-                            return True
-            return False
+                if name_key == "lock_is_opened_to_long":
+                    self._door_open_too_long = True
+                    self._last_door_open_too_long_timestamp = item.get("timestamp")
+                    self.async_update_listeners()
+                    _LOGGER.info("🔵 Initial door_open_too_long set to: True")
+                    return
+            
+            self._door_open_too_long = False
+            self.async_update_listeners()
+            _LOGGER.info("🔵 Initial door_open_too_long set to: False")
+            
         except Exception as e:
-            _LOGGER.warning(f"Failed to check outgoing call: {e}")
-            return False
+            _LOGGER.warning(f"Failed to initialize door_open_too_long: {e}")
+
+    async def async_check_events(self) -> tuple:
+        doorbell = False
+        exit_button = False
+        door_open = self._door_state
+        door_open_too_long = self._door_open_too_long
+        
+        _LOGGER.debug(f"Checking events... Current door_open_too_long: {door_open_too_long}")
+        
+        try:
+            logs = await self.async_get_logs(limit=10)
+            if not logs or not isinstance(logs, dict):
+                _LOGGER.debug("No logs received or invalid format")
+                return doorbell, exit_button, door_open, door_open_too_long
+            
+            items = logs.get("list_items", [])
+            if not items:
+                _LOGGER.debug("No items in logs")
+                return doorbell, exit_button, door_open, door_open_too_long
+            
+            _LOGGER.debug(f"Processing {len(items)} log items")
+            
+            for item in items:
+                name_key = item.get("name", {}).get("key", "")
+                timestamp_ms = item.get("timestamp")
+                if not timestamp_ms:
+                    continue
+                
+                if name_key == "lock_is_opened_to_long":
+                    door_open_too_long = True
+                    self._last_door_open_too_long_timestamp = timestamp_ms
+                    _LOGGER.info("🔴 DOOR OPEN TOO LONG DETECTED!")
+                    continue
+                
+                timestamp_sec = timestamp_ms / 1000
+                event_time = datetime.fromtimestamp(timestamp_sec)
+                if datetime.now() - event_time > timedelta(seconds=3):
+                    continue
+                
+                if name_key == "outgoing_call":
+                    doorbell = True
+                    self._last_doorbell_timestamp = timestamp_ms
+                    _LOGGER.debug("Doorbell event detected")
+                elif name_key == "lock_was_opened_by_exit_btn":
+                    exit_button = True
+                    self._last_exit_timestamp = timestamp_ms
+                    _LOGGER.debug("Exit button event detected")
+                elif name_key == "door_was_opened":
+                    door_open = True
+                    self._last_door_timestamp = timestamp_ms
+                    _LOGGER.debug("Door opened event detected")
+                elif name_key == "door_was_closed":
+                    door_open = False
+                    self._last_door_timestamp = timestamp_ms
+                    if self._door_open_too_long:
+                        door_open_too_long = False
+                        self._last_door_open_too_long_timestamp = None
+                        _LOGGER.info("🔵 Door open too long reset (door closed)")
+            
+            _LOGGER.debug(f"Final states: doorbell={doorbell}, exit_button={exit_button}, door_open={door_open}, door_open_too_long={door_open_too_long}")
+            return doorbell, exit_button, door_open, door_open_too_long
+        except Exception as e:
+            _LOGGER.warning(f"Failed to check events: {e}")
+            return doorbell, exit_button, door_open, door_open_too_long
+
+    async def _async_button_updater(self):
+        _LOGGER.info("🔄 Button updater started")
+        
+        await self.async_init_door_open_too_long()
+        
+        while not self._button_stop:
+            try:
+                if not self.token:
+                    await self.async_login()
+                    if not self.token:
+                        await asyncio.sleep(5)
+                        continue
+                
+                doorbell, exit_button, door_open, door_open_too_long = await self.async_check_events()
+                
+                if doorbell != self._doorbell_state:
+                    self._doorbell_state = doorbell
+                    self.async_update_listeners()
+                    _LOGGER.info(f"📢 Doorbell state changed to: {doorbell}")
+                
+                if exit_button != self._exit_button_state:
+                    self._exit_button_state = exit_button
+                    self.async_update_listeners()
+                    _LOGGER.info(f"🚪 Exit button state changed to: {exit_button}")
+                
+                if door_open != self._door_state:
+                    self._door_state = door_open
+                    self.async_update_listeners()
+                    _LOGGER.info(f"🚪 Door state changed to: {door_open}")
+                
+                if door_open_too_long != self._door_open_too_long:
+                    self._door_open_too_long = door_open_too_long
+                    self.async_update_listeners()
+                    _LOGGER.info(f"⏰ Door open too long changed to: {door_open_too_long}")
+                
+                await asyncio.sleep(3)
+            except Exception as e:
+                _LOGGER.error(f"Button updater error: {e}")
+                await asyncio.sleep(5)
+
+    def start_button_updater(self):
+        if self._button_task is None or self._button_task.done():
+            self._button_stop = False
+            self._button_task = asyncio.create_task(self._async_button_updater())
+            _LOGGER.info("Button updater task created")
+
+    async def async_stop_button_updater(self):
+        self._button_stop = True
+        if self._button_task and not self._button_task.done():
+            self._button_task.cancel()
+            try:
+                await self._button_task
+            except asyncio.CancelledError:
+                pass
+            self._button_task = None
+            _LOGGER.info("Button updater stopped")
 
     async def async_open_lock(self):
         return await self.async_request(API_LOCK_OPEN, "GET")
@@ -189,7 +323,4 @@ class BASIPCoordinator(DataUpdateCoordinator):
         return data
 
     async def async_validate_auth(self):
-        try:
-            return await self.async_login()
-        except:
-            return False
+        return await self.async_login()

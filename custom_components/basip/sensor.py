@@ -16,7 +16,10 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     for sensor_key, sensor_info in SENSOR_TYPES.items():
         sensors.append(BASIPSensor(coordinator, sensor_key, sensor_info))
     
-    sensors.append(BASIPButtonPressedSensor(coordinator))
+    sensors.append(BASIPDoorbellSensor(coordinator))
+    sensors.append(BASIPExitButtonSensor(coordinator))
+    sensors.append(BASIPDoorSensor(coordinator))
+    sensors.append(BASIPDoorOpenTooLongSensor(coordinator))
     
     async_add_entities(sensors)
 
@@ -115,15 +118,68 @@ class BASIPSensor(CoordinatorEntity, SensorEntity):
         return {"value": value}
 
 
-class BASIPButtonPressedSensor(CoordinatorEntity, BinarySensorEntity):
-    """Бинарный сенсор для отслеживания нажатия кнопки вызова (исходящий звонок)."""
-
+class BASIPDoorbellSensor(CoordinatorEntity, BinarySensorEntity):
     def __init__(self, coordinator):
         super().__init__(coordinator)
-        self._attr_name = "BAS-IP Button Pressed"
-        self._attr_unique_id = f"{coordinator.host}_button_pressed"
+        self._attr_name = "BAS-IP Doorbell"
+        self._attr_unique_id = f"{coordinator.host}_doorbell"
         self._attr_icon = "mdi:doorbell"
-        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, coordinator.host)},
+            name="BAS-IP Intercom",
+            manufacturer="BAS-IP",
+            model="Intercom Panel",
+        )
+
+    @property
+    def is_on(self) -> bool:
+        return self.coordinator._doorbell_state
+
+    @property
+    def available(self) -> bool:
+        return self.coordinator.connected
+
+    @property
+    def extra_state_attributes(self):
+        return {
+            "last_event_timestamp": self.coordinator._last_doorbell_timestamp,
+        }
+
+
+class BASIPExitButtonSensor(CoordinatorEntity, BinarySensorEntity):
+    def __init__(self, coordinator):
+        super().__init__(coordinator)
+        self._attr_name = "BAS-IP Exit Button"
+        self._attr_unique_id = f"{coordinator.host}_exit_button"
+        self._attr_icon = "mdi:exit-run"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, coordinator.host)},
+            name="BAS-IP Intercom",
+            manufacturer="BAS-IP",
+            model="Intercom Panel",
+        )
+
+    @property
+    def is_on(self) -> bool:
+        return self.coordinator._exit_button_state
+
+    @property
+    def available(self) -> bool:
+        return self.coordinator.connected
+
+    @property
+    def extra_state_attributes(self):
+        return {
+            "last_event_timestamp": self.coordinator._last_exit_timestamp,
+        }
+
+
+class BASIPDoorSensor(CoordinatorEntity, BinarySensorEntity):
+    def __init__(self, coordinator):
+        super().__init__(coordinator)
+        self._attr_name = "BAS-IP Door"
+        self._attr_unique_id = f"{coordinator.host}_door"
+        self._attr_icon = "mdi:door"
         self._attr_is_on = False
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, coordinator.host)},
@@ -134,9 +190,7 @@ class BASIPButtonPressedSensor(CoordinatorEntity, BinarySensorEntity):
 
     @property
     def is_on(self) -> bool:
-        if not self.coordinator.data:
-            return False
-        return self.coordinator.data.get("button_pressed", False)
+        return self.coordinator._door_state
 
     @property
     def available(self) -> bool:
@@ -145,5 +199,36 @@ class BASIPButtonPressedSensor(CoordinatorEntity, BinarySensorEntity):
     @property
     def extra_state_attributes(self):
         return {
-            "last_event_timestamp": self.coordinator._last_event_timestamp,
+            "last_event_timestamp": self.coordinator._last_door_timestamp,
+        }
+
+
+class BASIPDoorOpenTooLongSensor(CoordinatorEntity, BinarySensorEntity):
+    """Бинарный сенсор 'дверь открыта слишком долго'."""
+
+    def __init__(self, coordinator):
+        super().__init__(coordinator)
+        self._attr_name = "BAS-IP Door Open Too Long"
+        self._attr_unique_id = f"{coordinator.host}_door_open_too_long"
+        self._attr_icon = "mdi:clock-alert"
+        self._attr_is_on = False
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, coordinator.host)},
+            name="BAS-IP Intercom",
+            manufacturer="BAS-IP",
+            model="Intercom Panel",
+        )
+
+    @property
+    def is_on(self) -> bool:
+        return self.coordinator._door_open_too_long
+
+    @property
+    def available(self) -> bool:
+        return self.coordinator.connected
+
+    @property
+    def extra_state_attributes(self):
+        return {
+            "last_event_timestamp": self.coordinator._last_door_open_too_long_timestamp,
         }

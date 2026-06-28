@@ -4,13 +4,10 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import config_validation as cv
 import voluptuous as vol
-from .const import DOMAIN
+from .const import DOMAIN, PLATFORMS
 from .coordinator import BASIPCoordinator
 
 _LOGGER = logging.getLogger(__name__)
-
-# Импортируем PLATFORMS из const
-from .const import PLATFORMS
 
 LOCK_NUMBER_SCHEMA = vol.Schema({vol.Optional("lock_number", default=1): cv.positive_int})
 EMERGENCY_SCHEMA = vol.Schema({
@@ -29,34 +26,26 @@ IP_CONFIG_SCHEMA = vol.Schema({
 })
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up BAS-IP from a config entry."""
     _LOGGER.info("Setting up BAS-IP for %s", entry.data.get("host"))
     
-    # Инициализируем координатор
     coordinator = BASIPCoordinator(hass, entry.data)
-    
-    # Проверяем авторизацию
     valid = await coordinator.async_validate_auth()
     if not valid:
         _LOGGER.error("Failed to authenticate with BAS-IP")
         return False
     
-    # Сохраняем координатор
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = coordinator
     
-    # Регистрируем платформы
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    
-    # Регистрируем сервисы
     await async_register_services(hass, coordinator)
+    
+    coordinator.start_button_updater()
     
     _LOGGER.info("BAS-IP integration setup complete")
     return True
 
 async def async_register_services(hass: HomeAssistant, coordinator: BASIPCoordinator):
-    """Register services for BAS-IP integration."""
-    
     async def handle_open_lock(call: ServiceCall):
         await coordinator.async_open_lock()
         _LOGGER.info("Lock opened")
@@ -105,7 +94,6 @@ async def async_register_services(hass: HomeAssistant, coordinator: BASIPCoordin
         await coordinator.async_enable_dhcp()
         _LOGGER.info("DHCP enabled")
 
-    # Регистрируем все сервисы
     hass.services.async_register(DOMAIN, "open_lock", handle_open_lock)
     hass.services.async_register(DOMAIN, "emergency_open", handle_emergency_open, schema=EMERGENCY_SCHEMA)
     hass.services.async_register(DOMAIN, "emergency_close", handle_emergency_close, schema=LOCK_NUMBER_SCHEMA)
@@ -118,10 +106,11 @@ async def async_register_services(hass: HomeAssistant, coordinator: BASIPCoordin
     hass.services.async_register(DOMAIN, "enable_dhcp", handle_enable_dhcp)
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Unload a config entry."""
     _LOGGER.info("Unloading BAS-IP integration")
     
-    # Удаляем сервисы
+    coordinator = hass.data[DOMAIN][entry.entry_id]
+    await coordinator.async_stop_button_updater()
+    
     services = [
         "open_lock", "emergency_open", "emergency_close",
         "reboot", "take_photo", "call_start", "call_end",

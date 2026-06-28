@@ -35,7 +35,6 @@ class BASIPLock(CoordinatorEntity, LockEntity):
             manufacturer="BAS-IP",
             model="Intercom Panel",
         )
-        # Переопределяем стандартные названия кнопок
         self._attr_translation_key = "door_lock"
 
     async def async_lock(self, **kwargs):

@@ -1,7 +1,5 @@
 # BAS-IP Intercom for Home Assistant
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
-
 
 
 Интеграция для управления IP-домофоном BAS-IP через Home Assistant.

@@ -1,6 +1,6 @@
 """Switch platform for BAS-IP."""
 from homeassistant.components.switch import SwitchEntity
-from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 import logging
 
@@ -29,6 +29,7 @@ class BASIPEmergencySwitch(CoordinatorEntity, SwitchEntity):
         self._attr_unique_id = f"{coordinator.host}_emergency"
         self._attr_is_on = False
         self._attr_icon = "mdi:alert"
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, coordinator.host)},
             name="BAS-IP Intercom",

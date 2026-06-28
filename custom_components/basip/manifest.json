@@ -1,7 +1,7 @@
 {
   "domain": "basip",
   "name": "BAS-IP Intercom",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "config_flow": true,
   "documentation": "https://github.com/NagibinA/BAS-IP_AV-03BD",
   "issue_tracker": "https://github.com/NagibinA/BAS-IP_AV-03BD/issues",

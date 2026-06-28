@@ -23,24 +23,20 @@ class BASIPConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._errors = {}
 
         if user_input is not None:
-            # Проверяем, что пароль не пустой
             if not user_input.get(CONF_PASSWORD):
                 self._errors["base"] = "password_required"
                 return self._show_form(user_input)
 
-            # Проверяем, что IP адрес не пустой
             if not user_input.get(CONF_HOST):
                 self._errors["base"] = "host_required"
                 return self._show_form(user_input)
 
-            # Пытаемся подключиться к устройству
             from .coordinator import BASIPCoordinator
 
             coordinator = BASIPCoordinator(self.hass, user_input)
             valid = await coordinator.async_validate_auth()
 
             if valid:
-                # Создаем запись с уникальным ID
                 return self.async_create_entry(
                     title=f"BAS-IP ({user_input[CONF_HOST]})",
                     data={
@@ -54,7 +50,6 @@ class BASIPConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self._errors["base"] = "cannot_connect"
                 return self._show_form(user_input)
 
-        # Показываем форму для ввода данных
         return self._show_form()
 
     def _show_form(self, user_input=None):
@@ -92,7 +87,9 @@ class BASIPOptionsFlow(config_entries.OptionsFlow):
 
     def __init__(self, config_entry):
         """Initialize options flow."""
-        self.config_entry = config_entry
+        # Используем super() для правильной инициализации
+        super().__init__()
+        self._config_entry = config_entry
 
     async def async_step_init(self, user_input=None):
         """Manage the options."""
@@ -102,12 +99,12 @@ class BASIPOptionsFlow(config_entries.OptionsFlow):
         options = vol.Schema({
             vol.Optional(
                 "update_interval",
-                default=self.config_entry.options.get("update_interval", 60)
+                default=self._config_entry.options.get("update_interval", 60)
             ): vol.All(vol.Coerce(int), vol.Range(min=10, max=300)),
             vol.Optional(
                 "rtsp_password",
-                default=self.config_entry.options.get("rtsp_password", 
-                    self.config_entry.data.get("rtsp_password", DEFAULT_RTSP_PASSWORD))
+                default=self._config_entry.options.get("rtsp_password", 
+                    self._config_entry.data.get("rtsp_password", DEFAULT_RTSP_PASSWORD))
             ): str,
         })
 

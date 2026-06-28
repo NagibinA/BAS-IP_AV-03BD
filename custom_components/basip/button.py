@@ -1,6 +1,6 @@
 """Button platform for BAS-IP."""
 from homeassistant.components.button import ButtonEntity
-from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 import logging
 
@@ -28,6 +28,7 @@ class BASIPRebootButton(CoordinatorEntity, ButtonEntity):
         self._attr_name = "BAS-IP Reboot"
         self._attr_unique_id = f"{coordinator.host}_reboot"
         self._attr_icon = "mdi:restart"
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, coordinator.host)},
             name="BAS-IP Intercom",

@@ -22,6 +22,7 @@ class BASIPCoordinator(DataUpdateCoordinator):
         self.token_expiry = None
         self.base_url = f"http://{self.host}:{self.port}"
         self.connected = False
+        self._last_event_timestamp = None
         super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=timedelta(seconds=60))
 
     async def _async_update_data(self):
@@ -29,7 +30,10 @@ class BASIPCoordinator(DataUpdateCoordinator):
             async with async_timeout.timeout(10):
                 if not self.token or await self._is_token_expired():
                     await self.async_login()
-                return await self.async_fetch_all_data()
+                
+                data = await self.async_fetch_all_data()
+                data["button_pressed"] = await self.async_check_outgoing_call()
+                return data
         except Exception as error:
             _LOGGER.error(f"Error updating: {error}")
             raise UpdateFailed(f"Error: {error}")
@@ -95,6 +99,41 @@ class BASIPCoordinator(DataUpdateCoordinator):
                         raise
                     await asyncio.sleep(1)
         return None
+
+    async def async_get_logs(self, limit: int = 10, page_number: int = 1):
+        """Получить список событий."""
+        try:
+            url = f"{API_LOGS_ITEMS}?limit={limit}&page_number={page_number}"
+            return await self.async_request(url, "GET")
+        except Exception as e:
+            _LOGGER.warning(f"Failed to get logs: {e}")
+            return None
+
+    async def async_check_outgoing_call(self) -> bool:
+        """Проверить, была ли нажата кнопка вызова за последние 10 секунд."""
+        try:
+            logs = await self.async_get_logs(limit=10)
+            if not logs or not isinstance(logs, dict):
+                return False
+            
+            items = logs.get("list_items", [])
+            if not items:
+                return False
+            
+            now = datetime.now()
+            for item in items:
+                name_key = item.get("name", {}).get("key", "")
+                if name_key == "outgoing_call":
+                    timestamp = item.get("timestamp")
+                    if timestamp:
+                        event_time = datetime.fromtimestamp(timestamp)
+                        if now - event_time < timedelta(seconds=10):
+                            self._last_event_timestamp = timestamp
+                            return True
+            return False
+        except Exception as e:
+            _LOGGER.warning(f"Failed to check outgoing call: {e}")
+            return False
 
     async def async_open_lock(self):
         return await self.async_request(API_LOCK_OPEN, "GET")

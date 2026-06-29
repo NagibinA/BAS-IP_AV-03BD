@@ -24,11 +24,20 @@ IP_CONFIG_SCHEMA = vol.Schema({
     vol.Required("gateway"): cv.string,
     vol.Required("dns"): cv.string,
 })
+VOLUME_SCHEMA = vol.Schema({
+    vol.Required("volume"): vol.All(vol.Coerce(int), vol.Range(min=1, max=6))
+})
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _LOGGER.info("Setting up BAS-IP for %s", entry.data.get("host"))
     
-    coordinator = BASIPCoordinator(hass, entry.data)
+    config = dict(entry.data)
+    config["options"] = entry.options
+    config["call_numbers"] = entry.options.get("call_numbers", ["79020"])
+    
+    coordinator = BASIPCoordinator(hass, config)
+    coordinator._entry_id = entry.entry_id
+    
     valid = await coordinator.async_validate_auth()
     if not valid:
         _LOGGER.error("Failed to authenticate with BAS-IP")
@@ -42,8 +51,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     
     coordinator.start_button_updater()
     
+    entry.async_on_unload(entry.add_update_listener(async_update_options))
+    
     _LOGGER.info("BAS-IP integration setup complete")
     return True
+
+async def async_update_options(hass: HomeAssistant, entry: ConfigEntry):
+    """Обновить опции интеграции."""
+    coordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator.update_call_numbers(entry.options)
+    _LOGGER.info("BAS-IP options updated")
 
 async def async_register_services(hass: HomeAssistant, coordinator: BASIPCoordinator):
     async def handle_open_lock(call: ServiceCall):
@@ -93,6 +110,10 @@ async def async_register_services(hass: HomeAssistant, coordinator: BASIPCoordin
     async def handle_enable_dhcp(call: ServiceCall):
         await coordinator.async_enable_dhcp()
         _LOGGER.info("DHCP enabled")
+    
+    async def handle_set_volume(call: ServiceCall):
+        await coordinator.async_set_volume(call.data.get("volume"))
+        _LOGGER.info(f"Volume set to {call.data.get('volume')}")
 
     hass.services.async_register(DOMAIN, "open_lock", handle_open_lock)
     hass.services.async_register(DOMAIN, "emergency_open", handle_emergency_open, schema=EMERGENCY_SCHEMA)
@@ -104,6 +125,7 @@ async def async_register_services(hass: HomeAssistant, coordinator: BASIPCoordin
     hass.services.async_register(DOMAIN, "set_language", handle_set_language, schema=LANGUAGE_SCHEMA)
     hass.services.async_register(DOMAIN, "set_static_ip", handle_set_static_ip, schema=IP_CONFIG_SCHEMA)
     hass.services.async_register(DOMAIN, "enable_dhcp", handle_enable_dhcp)
+    hass.services.async_register(DOMAIN, "set_volume", handle_set_volume, schema=VOLUME_SCHEMA)
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _LOGGER.info("Unloading BAS-IP integration")
@@ -114,7 +136,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     services = [
         "open_lock", "emergency_open", "emergency_close",
         "reboot", "take_photo", "call_start", "call_end",
-        "set_language", "set_static_ip", "enable_dhcp"
+        "set_language", "set_static_ip", "enable_dhcp",
+        "set_volume"
     ]
     for service in services:
         hass.services.async_remove(DOMAIN, service)

@@ -10,16 +10,12 @@ from .const import DOMAIN, DEFAULT_PORT
 _LOGGER = logging.getLogger(__name__)
 
 class BASIPConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for BAS-IP Intercom."""
-
     VERSION = 1
 
     def __init__(self):
-        """Initialize the config flow."""
         self._errors = {}
 
     async def async_step_user(self, user_input=None):
-        """Handle the initial step."""
         self._errors = {}
 
         if user_input is not None:
@@ -52,7 +48,6 @@ class BASIPConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self._show_form()
 
     def _show_form(self, user_input=None):
-        """Show the configuration form."""
         if user_input is None:
             user_input = {}
 
@@ -75,28 +70,57 @@ class BASIPConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @staticmethod
     @callback
     def async_get_options_flow(config_entry):
-        """Get the options flow for this handler."""
         return BASIPOptionsFlow(config_entry)
 
 
 class BASIPOptionsFlow(config_entries.OptionsFlow):
-    """Handle BAS-IP options."""
-
     def __init__(self, config_entry):
-        """Initialize options flow."""
         super().__init__()
         self._config_entry = config_entry
 
     async def async_step_init(self, user_input=None):
-        """Manage the options."""
         if user_input is not None:
+            # Собираем только непустые номера
+            numbers = []
+            for i in range(1, 6):
+                key = f"call_number_{i}"
+                if key in user_input and user_input[key] and str(user_input[key]).strip():
+                    numbers.append(str(user_input[key]).strip())
+
+            user_input["call_numbers"] = numbers if numbers else ["79020"]
+
+            for i in range(1, 6):
+                user_input.pop(f"call_number_{i}", None)
+
             return self.async_create_entry(title="", data=user_input)
 
-        options = vol.Schema({
+        current_numbers = self._config_entry.options.get("call_numbers", ["79020"])
+        if isinstance(current_numbers, str):
+            current_numbers = [n.strip() for n in current_numbers.split(",") if n.strip()]
+        if not current_numbers:
+            current_numbers = ["79020"]
+
+        while len(current_numbers) < 5:
+            current_numbers.append("")
+
+        schema = {
             vol.Optional(
                 "update_interval",
                 default=self._config_entry.options.get("update_interval", 60)
             ): vol.All(vol.Coerce(int), vol.Range(min=10, max=300)),
-        })
+        }
 
-        return self.async_show_form(step_id="init", data_schema=options)
+        for i in range(1, 6):
+            # Используем suggested_value вместо default
+            schema[vol.Optional(
+                f"call_number_{i}",
+                description={"suggested_value": current_numbers[i-1]}
+            )] = str
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(schema),
+            description_placeholders={
+                "call_numbers_help": "Enter up to 5 phone numbers. Leave empty to remove."
+            }
+        )

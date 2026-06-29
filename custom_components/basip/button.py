@@ -9,21 +9,17 @@ from .const import DOMAIN
 _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
-    """Set up the BAS-IP button platform."""
     coordinator = hass.data[DOMAIN][config_entry.entry_id]
-
     buttons = [
         BASIPRebootButton(coordinator),
+        BASIPCallStartButton(coordinator),
+        BASIPCallEndButton(coordinator),
     ]
-
     async_add_entities(buttons)
 
 
 class BASIPRebootButton(CoordinatorEntity, ButtonEntity):
-    """Representation of a BAS-IP reboot button."""
-
     def __init__(self, coordinator):
-        """Initialize the button."""
         super().__init__(coordinator)
         self._attr_name = "BAS-IP Reboot"
         self._attr_unique_id = f"{coordinator.host}_reboot"
@@ -37,9 +33,54 @@ class BASIPRebootButton(CoordinatorEntity, ButtonEntity):
         )
 
     async def async_press(self, **kwargs):
-        """Press the button (reboot the device)."""
         try:
             await self.coordinator.async_reboot()
             _LOGGER.info("Device reboot initiated")
         except Exception as e:
             _LOGGER.error(f"Error rebooting device: {e}")
+
+
+class BASIPCallStartButton(CoordinatorEntity, ButtonEntity):
+    def __init__(self, coordinator):
+        super().__init__(coordinator)
+        self._attr_name = "BAS-IP Call"
+        self._attr_unique_id = f"{coordinator.host}_call"
+        self._attr_icon = "mdi:phone"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, coordinator.host)},
+            name="BAS-IP Intercom",
+            manufacturer="BAS-IP",
+            model="Intercom Panel",
+        )
+
+    async def async_press(self, **kwargs):
+        try:
+            number = self.coordinator._current_call_number
+            if not number:
+                _LOGGER.warning("No call number configured")
+                return
+            await self.coordinator.async_call_start(number)
+            _LOGGER.info(f"📞 Call started to {number}")
+        except Exception as e:
+            _LOGGER.error(f"Error starting call: {e}")
+
+
+class BASIPCallEndButton(CoordinatorEntity, ButtonEntity):
+    def __init__(self, coordinator):
+        super().__init__(coordinator)
+        self._attr_name = "BAS-IP Call End"
+        self._attr_unique_id = f"{coordinator.host}_call_end"
+        self._attr_icon = "mdi:phone-hangup"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, coordinator.host)},
+            name="BAS-IP Intercom",
+            manufacturer="BAS-IP",
+            model="Intercom Panel",
+        )
+
+    async def async_press(self, **kwargs):
+        try:
+            await self.coordinator.async_call_end()
+            _LOGGER.info("Call ended")
+        except Exception as e:
+            _LOGGER.error(f"Error ending call: {e}")

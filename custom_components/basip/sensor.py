@@ -12,16 +12,13 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(hass, config_entry, async_add_entities):
     coordinator = hass.data[DOMAIN][config_entry.entry_id]
     sensors = []
-    
     for sensor_key, sensor_info in SENSOR_TYPES.items():
         sensors.append(BASIPSensor(coordinator, sensor_key, sensor_info))
-    
     sensors.append(BASIPDoorbellSensor(coordinator))
     sensors.append(BASIPExitButtonSensor(coordinator))
     sensors.append(BASIPDoorSensor(coordinator))
     sensors.append(BASIPDoorOpenTooLongSensor(coordinator))
     sensors.append(BASIPExitButtonStatusSensor(coordinator))
-    
     async_add_entities(sensors)
 
 
@@ -150,8 +147,6 @@ class BASIPDoorbellSensor(CoordinatorEntity, BinarySensorEntity):
 
 
 class BASIPExitButtonSensor(CoordinatorEntity, BinarySensorEntity):
-    """Сенсор для отслеживания нажатия кнопки выхода (внутри)."""
-
     def __init__(self, coordinator):
         super().__init__(coordinator)
         self._attr_name = "BAS-IP Exit Button Pressed"
@@ -183,8 +178,6 @@ class BASIPExitButtonSensor(CoordinatorEntity, BinarySensorEntity):
 
 
 class BASIPDoorSensor(CoordinatorEntity, BinarySensorEntity):
-    """Сенсор состояния двери (открыта/закрыта)."""
-
     def __init__(self, coordinator):
         super().__init__(coordinator)
         self._attr_name = "BAS-IP Door"
@@ -243,8 +236,6 @@ class BASIPDoorOpenTooLongSensor(CoordinatorEntity, BinarySensorEntity):
 
 
 class BASIPExitButtonStatusSensor(CoordinatorEntity, BinarySensorEntity):
-    """Сенсор для отслеживания включена ли функция кнопки выхода."""
-
     def __init__(self, coordinator):
         super().__init__(coordinator)
         self._attr_name = "BAS-IP Exit Button Enabled"

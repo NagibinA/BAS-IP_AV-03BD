@@ -29,6 +29,7 @@ API_DEVICE_VIDEO = "/api/v1/device/settings/video"
 API_DEVICE_RTSP = "/api/v1/device/settings/rtsp"
 API_DEVICE_PAYLOAD = "/api/v1/device/settings/payload"
 API_DEVICE_VOLUME = "/api/v1/device/settings/volume"
+API_SET_VOLUME = "/api/v1/device/settings/volume"
 API_DEVICE_RELAY = "/api/v1/device/relay/settings"
 API_DEVICE_MODE = "/api/v1/device/mode/current"
 API_LOCK_OPEN = "/api/v1/access/general/lock/open/remote/accepted/1"
@@ -67,7 +68,7 @@ DEFAULT_UPDATE_INTERVAL = 60
 LANGUAGES = ["English", "Russian", "Ukrainian", "Spanish", "Turkish", "Deutsch", "Italian", "French"]
 
 # Supported platforms
-PLATFORMS = [Platform.CAMERA, Platform.LOCK, Platform.SWITCH, Platform.SENSOR, Platform.BUTTON]
+PLATFORMS = [Platform.CAMERA, Platform.LOCK, Platform.SWITCH, Platform.SENSOR, Platform.BUTTON, Platform.NUMBER, Platform.SELECT]
 
 # Sensor types with their API endpoints and display names
 SENSOR_TYPES = {

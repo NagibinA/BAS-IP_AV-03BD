@@ -120,3 +120,18 @@ enable_dhcp:
   name: Enable DHCP
   description: "Switch to DHCP configuration"
   fields: {}
+
+set_volume:
+  name: Set Volume
+  description: "Set speaker volume level (1-6)"
+  fields:
+    volume:
+      name: Volume Level
+      description: "Volume level (1-6)"
+      required: true
+      default: 3
+      selector:
+        number:
+          min: 1
+          max: 6
+          step: 1

@@ -7,249 +7,100 @@
         "data": {
           "host": "IP-адрес",
           "password": "Пароль",
-          "port": "Порт"
+          "mask": "Маска подсети",
+          "gateway": "Шлюз",
+          "dns": "DNS-сервер"
+        }
+      },
+      "numbers": {
+        "title": "Настройка номеров",
+        "description": "Введите до 5 номеров для звонков",
+        "data": {
+          "call_number_1": "Номер 1",
+          "call_number_2": "Номер 2",
+          "call_number_3": "Номер 3",
+          "call_number_4": "Номер 4",
+          "call_number_5": "Номер 5"
         }
       }
     },
     "error": {
       "cannot_connect": "Не удалось подключиться к панели BAS-IP. Проверьте IP-адрес и пароль.",
+      "cannot_connect_current": "Не удалось подключиться к панели по текущему IP-адресу. Проверьте соединение.",
       "password_required": "Пароль обязателен",
       "host_required": "IP-адрес обязателен",
+      "ip_required": "IP-адрес обязателен",
+      "ip_occupied": "IP-адрес уже используется другим устройством. Выберите другой адрес.",
+      "ip_change_failed": "Не удалось изменить IP-адрес на панели. Проверьте настройки.",
+      "password_change_failed": "Не удалось изменить пароль на панели. Проверьте соединение.",
+      "ip_unchanged": "IP-адрес не изменён. Выход без изменений.",
       "unknown": "Неизвестная ошибка"
     },
     "abort": {
-      "already_configured": "Это устройство уже настроено"
+      "already_configured": "Это устройство уже настроено",
+      "no_selection": "Раздел не выбран"
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "Настройки BAS-IP Интерком",
+        "description": "Выберите раздел для настройки",
+        "menu_options": {
+          "change_ip": "Смена IP-адреса",
+          "change_password": "Смена пароля",
+          "general": "Общие настройки",
+          "numbers": "Настройка номеров"
+        }
+      },
+      "change_ip": {
+        "title": "Смена IP-адреса",
+        "description": "Измените сетевые настройки панели BAS-IP",
+        "data": {
+          "ip_address": "Новый IP-адрес",
+          "mask": "Маска подсети",
+          "gateway": "Шлюз",
+          "dns": "DNS-сервер"
+        }
+      },
+      "change_password": {
+        "title": "Смена пароля",
+        "description": "Измените пароль администратора",
+        "data": {
+          "password": "Новый пароль"
+        }
+      },
+      "general": {
+        "title": "Общие настройки",
         "description": "Настройте параметры интеграции",
         "data": {
           "update_interval": "Интервал обновления (секунды)"
         }
-      }
-    }
-  },
-  "entity": {
-    "lock": {
-      "door_lock": {
-        "name": "Дверь",
-        "state": {
-          "locked": "Закрыта",
-          "unlocking": "Открывается..."
-        },
-        "lock": "Закрыть",
-        "unlock": "Открыть"
-      }
-    },
-    "camera": {
-      "bas_ip_camera": {
-        "name": "Камера BAS-IP"
-      }
-    },
-    "sensor": {
-      "bas_ip_info": {
-        "name": "Информация об устройстве"
       },
-      "bas_ip_network_settings": {
-        "name": "Сетевые настройки"
-      },
-      "bas_ip_network_mac": {
-        "name": "MAC-адрес"
-      },
-      "bas_ip_network_ntp": {
-        "name": "NTP-сервер"
-      },
-      "bas_ip_network_dst": {
-        "name": "Настройки DST"
-      },
-      "bas_ip_network_timezone": {
-        "name": "Часовой пояс"
-      },
-      "bas_ip_network_management_link": {
-        "name": "Настройки Link"
-      },
-      "bas_ip_network_management_server": {
-        "name": "Сервер управления"
-      },
-      "bas_ip_network_management_server_cert": {
-        "name": "Сертификат сервера"
-      },
-      "bas_ip_sip_status": {
-        "name": "Статус SIP"
-      },
-      "bas_ip_sip_settings": {
-        "name": "Настройки SIP"
-      },
-      "bas_ip_sip_enable": {
-        "name": "SIP включён"
-      },
-      "bas_ip_sip_reregister": {
-        "name": "Перерегистрация SIP"
-      },
-      "bas_ip_call_auto_answer": {
-        "name": "Автоответ"
-      },
-      "bas_ip_rescue_service": {
-        "name": "Служба спасения"
-      },
-      "bas_ip_device_time": {
-        "name": "Время устройства"
-      },
-      "bas_ip_device_language": {
-        "name": "Язык"
-      },
-      "bas_ip_device_video": {
-        "name": "Разрешение видео"
-      },
-      "bas_ip_device_rtsp": {
-        "name": "Настройки RTSP"
-      },
-      "bas_ip_device_payload": {
-        "name": "Кодек Payload"
-      },
-      "bas_ip_device_volume": {
-        "name": "Громкость"
-      },
-      "bas_ip_device_relay": {
-        "name": "Настройки реле"
-      },
-      "bas_ip_device_mode": {
-        "name": "Режим работы"
-      },
-      "bas_ip_lock_type": {
-        "name": "Тип замка"
-      },
-      "bas_ip_lock_timeout": {
-        "name": "Таймаут замка"
-      },
-      "bas_ip_master_card": {
-        "name": "Мастер-карта"
-      },
-      "bas_ip_input_code": {
-        "name": "Код доступа"
-      },
-      "bas_ip_button_pressed": {
-        "name": "Нажата кнопка вызова"
-      }
-    },
-    "button": {
-      "bas_ip_reboot": {
-        "name": "Перезагрузка"
-      }
-    },
-    "switch": {
-      "bas_ip_emergency_mode": {
-        "name": "Аварийный режим",
-        "state": {
-          "on": "Включён",
-          "off": "Выключен"
-        }
-      }
-    }
-  },
-  "services": {
-    "open_lock": {
-      "name": "Открыть замок",
-      "description": "Открывает дверной замок"
-    },
-    "emergency_open": {
-      "name": "Аварийное открытие",
-      "description": "Открывает замок в аварийном режиме",
-      "fields": {
-        "lock_number": {
-          "name": "Номер замка",
-          "description": "Номер замка для управления (1-4)"
-        },
-        "unlock_time": {
-          "name": "Время открытия",
-          "description": "Время в миллисекундах, на которое замок остаётся открытым"
+      "numbers": {
+        "title": "Настройка номеров",
+        "description": "Введите до 5 номеров для звонков",
+        "data": {
+          "call_number_1": "Номер 1",
+          "call_number_2": "Номер 2",
+          "call_number_3": "Номер 3",
+          "call_number_4": "Номер 4",
+          "call_number_5": "Номер 5"
         }
       }
     },
-    "emergency_close": {
-      "name": "Закрыть аварийный режим",
-      "description": "Закрывает аварийный режим",
-      "fields": {
-        "lock_number": {
-          "name": "Номер замка",
-          "description": "Номер замка для управления (1-4)"
-        }
-      }
+    "error": {
+      "cannot_connect": "Не удалось подключиться к панели BAS-IP. Проверьте IP-адрес и пароль.",
+      "cannot_connect_current": "Не удалось подключиться к панели по текущему IP-адресу. Проверьте соединение.",
+      "ip_required": "IP-адрес обязателен",
+      "ip_occupied": "IP-адрес уже используется другим устройством. Выберите другой адрес.",
+      "ip_change_failed": "Не удалось изменить IP-адрес на панели. Проверьте настройки.",
+      "password_change_failed": "Не удалось изменить пароль на панели. Проверьте соединение.",
+      "ip_unchanged": "IP-адрес не изменён. Выход без изменений.",
+      "password_required": "Пароль обязателен"
     },
-    "reboot": {
-      "name": "Перезагрузка",
-      "description": "Перезагружает устройство BAS-IP"
-    },
-    "take_photo": {
-      "name": "Сделать снимок",
-      "description": "Делает снимок с камеры"
-    },
-    "call_start": {
-      "name": "Начать звонок",
-      "description": "Начинает исходящий вызов",
-      "fields": {
-        "number": {
-          "name": "Номер",
-          "description": "Номер телефона для вызова"
-        }
-      }
-    },
-    "call_end": {
-      "name": "Завершить звонок",
-      "description": "Завершает текущий вызов"
-    },
-    "set_language": {
-      "name": "Установить язык",
-      "description": "Изменяет язык интерфейса устройства",
-      "fields": {
-        "language": {
-          "name": "Язык",
-          "description": "Код языка"
-        }
-      }
-    },
-    "set_static_ip": {
-      "name": "Установить статический IP",
-      "description": "Настраивает статический IP-адрес",
-      "fields": {
-        "ip_address": {
-          "name": "IP-адрес",
-          "description": "Статический IP-адрес"
-        },
-        "mask": {
-          "name": "Маска подсети",
-          "description": "Маска подсети"
-        },
-        "gateway": {
-          "name": "Шлюз",
-          "description": "IP-адрес шлюза"
-        },
-        "dns": {
-          "name": "DNS-сервер",
-          "description": "IP-адрес DNS-сервера"
-        }
-      }
-    },
-    "enable_dhcp": {
-      "name": "Включить DHCP",
-      "description": "Включает получение настроек по DHCP"
-    }
-  },
-  "selector": {
-    "language": {
-      "options": {
-        "English": "Английский",
-        "Russian": "Русский",
-        "Ukrainian": "Украинский",
-        "Spanish": "Испанский",
-        "Turkish": "Турецкий",
-        "Deutsch": "Немецкий",
-        "Italian": "Итальянский",
-        "French": "Французский"
-      }
+    "abort": {
+      "ip_unchanged": "IP-адрес не изменён. Выход без изменений."
     }
   }
 }

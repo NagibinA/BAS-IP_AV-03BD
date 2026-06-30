@@ -7,7 +7,7 @@ import logging
 from datetime import timedelta, datetime
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_PORT
+from homeassistant.const import CONF_HOST, CONF_PASSWORD
 from .const import *
 
 _LOGGER = logging.getLogger(__name__)
@@ -16,11 +16,10 @@ class BASIPCoordinator(DataUpdateCoordinator):
     def __init__(self, hass: HomeAssistant, config):
         self.hass = hass
         self.host = config.get(CONF_HOST)
-        self.port = config.get(CONF_PORT, DEFAULT_PORT)
         self.password = config.get(CONF_PASSWORD)
         self.token = None
         self.token_expiry = None
-        self.base_url = f"http://{self.host}:{self.port}"
+        self.base_url = f"http://{self.host}:{DEFAULT_PORT}"
         self.connected = False
         self._entry_id = None
         
@@ -30,7 +29,6 @@ class BASIPCoordinator(DataUpdateCoordinator):
         self._door_open_too_long = False
         self._exit_button_enabled = False
         
-        # Номера для звонков
         self._call_numbers = self._extract_numbers(config)
         self._current_call_number = self._call_numbers[0] if self._call_numbers else "79020"
         
@@ -45,13 +43,16 @@ class BASIPCoordinator(DataUpdateCoordinator):
         super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=timedelta(seconds=60))
 
     def _extract_numbers(self, config):
+        """Извлечь список номеров из конфига."""
         numbers = []
+        
         if "call_numbers" in config:
             val = config["call_numbers"]
             if isinstance(val, list):
                 numbers = [str(n).strip() for n in val if n and str(n).strip()]
             elif isinstance(val, str):
                 numbers = [n.strip() for n in val.split(",") if n.strip()]
+        
         if not numbers and "options" in config:
             options = config["options"]
             if "call_numbers" in options:
@@ -60,12 +61,14 @@ class BASIPCoordinator(DataUpdateCoordinator):
                     numbers = [str(n).strip() for n in val if n and str(n).strip()]
                 elif isinstance(val, str):
                     numbers = [n.strip() for n in val.split(",") if n.strip()]
+        
         seen = set()
         unique_numbers = []
         for n in numbers:
             if n not in seen:
                 seen.add(n)
                 unique_numbers.append(n)
+        
         return unique_numbers if unique_numbers else ["79020"]
 
     def update_call_numbers(self, options):
@@ -116,8 +119,10 @@ class BASIPCoordinator(DataUpdateCoordinator):
             await self.async_login()
             if not self.token:
                 return None
+        
         url = f"{self.base_url}{endpoint}"
         headers = {"Authorization": self.token, "Content-Type": "application/json"}
+        
         async with aiohttp.ClientSession() as session:
             for attempt in range(retry_count):
                 try:
@@ -131,8 +136,10 @@ class BASIPCoordinator(DataUpdateCoordinator):
                             else:
                                 _LOGGER.error("Re-authentication failed")
                                 return None
+                        
                         if resp.status != 200:
                             return None
+                        
                         content_type = resp.headers.get("content-type", "")
                         if "application/json" in content_type:
                             return await resp.json()
@@ -166,16 +173,19 @@ class BASIPCoordinator(DataUpdateCoordinator):
         status = await self.async_get_door_status()
         if not status or not isinstance(status, dict):
             return False
+        
         if status.get("is_timeout_exceed"):
             self._last_door_open_too_long_timestamp = int(datetime.now().timestamp() * 1000)
         else:
             self._last_door_open_too_long_timestamp = None
+        
         return status.get("is_timeout_exceed", False)
 
     async def async_check_door_state(self) -> bool:
         status = await self.async_get_door_status()
         if not status or not isinstance(status, dict):
             return self._door_state
+        
         is_open = status.get("status") == "open"
         if is_open:
             self._last_door_timestamp = int(datetime.now().timestamp() * 1000)
@@ -191,12 +201,47 @@ class BASIPCoordinator(DataUpdateCoordinator):
             _LOGGER.warning(f"Failed to get exit button status: {e}")
             return False
 
+    async def async_change_password(self, old_password: str, new_password: str):
+        """Сменить пароль администратора на панели."""
+        url = f"{API_CHANGE_PASSWORD}?oldPassword={old_password}&newPassword={new_password}"
+        return await self.async_request(url, "POST")
+
+    async def async_set_static_ip(self, ip: str, mask: str, gateway: str, dns: str):
+        """Установить статический IP на панели."""
+        _LOGGER.info(f"🔄 Setting static IP: {ip}, Mask: {mask}, Gateway: {gateway}, DNS: {dns}")
+        
+        data = {
+            "ip_address": ip,
+            "mask": mask,
+            "gateway": gateway,
+            "dns": dns,
+        }
+        
+        _LOGGER.debug(f"📤 Request data: {data}")
+        
+        try:
+            result = await self.async_request(API_NETWORK_STATIC, "POST", json_data=data)
+            
+            if result is None:
+                raise Exception("Request returned None - check authentication or connection")
+                
+            _LOGGER.info(f"✅ Static IP set successfully")
+            return result
+        except Exception as e:
+            _LOGGER.error(f"❌ Failed to set static IP: {e}")
+            raise
+
+    async def async_get_network_settings(self):
+        """Получить текущие сетевые настройки."""
+        return await self.async_request(API_NETWORK_SETTINGS, "GET")
+
     async def async_check_events(self) -> tuple:
         doorbell = False
         exit_button = False
         door_open_too_long = await self.async_check_door_open_too_long()
         door_state = await self.async_check_door_state()
         exit_button_enabled = await self.async_check_exit_button_enabled()
+        
         try:
             logs = await self.async_get_logs(limit=10)
             if logs and isinstance(logs, dict):
@@ -207,16 +252,19 @@ class BASIPCoordinator(DataUpdateCoordinator):
                     timestamp_ms = item.get("timestamp")
                     if not timestamp_ms:
                         continue
+                    
                     timestamp_sec = timestamp_ms / 1000
                     event_time = datetime.fromtimestamp(timestamp_sec)
                     if now - event_time > timedelta(seconds=3):
                         continue
+                    
                     if name_key == "outgoing_call":
                         doorbell = True
                         self._last_doorbell_timestamp = timestamp_ms
                     elif name_key == "lock_was_opened_by_exit_btn":
                         exit_button = True
                         self._last_exit_timestamp = timestamp_ms
+            
             return doorbell, exit_button, door_open_too_long, door_state, exit_button_enabled
         except Exception as e:
             _LOGGER.warning(f"Failed to check events: {e}")
@@ -249,10 +297,6 @@ class BASIPCoordinator(DataUpdateCoordinator):
     async def async_set_language(self, language):
         return await self.async_request(f"{API_DEVICE_LANGUAGE}?language={language}", "POST")
 
-    async def async_set_static_ip(self, ip, mask, gateway, dns):
-        data = {"ip_address": ip, "mask": mask, "gateway": gateway, "dns": dns}
-        return await self.async_request(API_NETWORK_STATIC, "POST", json_data=data)
-
     async def async_enable_dhcp(self):
         return await self.async_request(API_NETWORK_DHCP, "POST")
 
@@ -262,6 +306,7 @@ class BASIPCoordinator(DataUpdateCoordinator):
 
     async def _async_button_updater(self):
         _LOGGER.info("🔄 Button updater started (interval: 1s)")
+        
         while not self._button_stop:
             try:
                 if not self.token:
@@ -269,27 +314,34 @@ class BASIPCoordinator(DataUpdateCoordinator):
                     if not self.token:
                         await asyncio.sleep(5)
                         continue
+                
                 doorbell, exit_button, door_open_too_long, door_state, exit_button_enabled = await self.async_check_events()
+                
                 if doorbell != self._doorbell_state:
                     self._doorbell_state = doorbell
                     self.async_update_listeners()
                     _LOGGER.info(f"📢 Doorbell state changed to: {doorbell}")
+                
                 if exit_button != self._exit_button_state:
                     self._exit_button_state = exit_button
                     self.async_update_listeners()
                     _LOGGER.info(f"🚪 Exit button pressed changed to: {exit_button}")
+                
                 if door_state != self._door_state:
                     self._door_state = door_state
                     self.async_update_listeners()
                     _LOGGER.info(f"🚪 Door state changed to: {door_state}")
+                
                 if door_open_too_long != self._door_open_too_long:
                     self._door_open_too_long = door_open_too_long
                     self.async_update_listeners()
                     _LOGGER.info(f"⏰ Door open too long changed to: {door_open_too_long}")
+                
                 if exit_button_enabled != self._exit_button_enabled:
                     self._exit_button_enabled = exit_button_enabled
                     self.async_update_listeners()
                     _LOGGER.info(f"🔘 Exit button enabled changed to: {exit_button_enabled}")
+                
                 await asyncio.sleep(1)
             except Exception as e:
                 _LOGGER.error(f"Button updater error: {e}")

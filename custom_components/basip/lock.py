@@ -11,9 +11,10 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the BAS-IP lock platform."""
     coordinator = hass.data[DOMAIN][config_entry.entry_id]
+    entry_id = config_entry.entry_id
 
     locks = [
-        BASIPLock(coordinator, lock_id=1, name="BAS-IP Door Lock"),
+        BASIPLock(coordinator, entry_id, lock_id=1, name="BAS-IP Door Lock"),
     ]
 
     async_add_entities(locks)
@@ -22,15 +23,16 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 class BASIPLock(CoordinatorEntity, LockEntity):
     """Representation of a BAS-IP lock."""
 
-    def __init__(self, coordinator, lock_id: int, name: str):
+    def __init__(self, coordinator, entry_id, lock_id: int, name: str):
         """Initialize the lock."""
         super().__init__(coordinator)
         self._lock_id = lock_id
+        self._entry_id = entry_id
         self._attr_name = name
-        self._attr_unique_id = f"{coordinator.host}_lock_{lock_id}"
+        self._attr_unique_id = f"{entry_id}_lock_{lock_id}"
         self._attr_is_locked = True
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, coordinator.host)},
+            identifiers={(DOMAIN, entry_id)},
             name="BAS-IP Intercom",
             manufacturer="BAS-IP",
             model="Intercom Panel",

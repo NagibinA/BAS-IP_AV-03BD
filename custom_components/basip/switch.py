@@ -11,9 +11,10 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the BAS-IP switch platform."""
     coordinator = hass.data[DOMAIN][config_entry.entry_id]
+    entry_id = config_entry.entry_id
 
     switches = [
-        BASIPEmergencySwitch(coordinator),
+        BASIPEmergencySwitch(coordinator, entry_id),
     ]
 
     async_add_entities(switches)
@@ -22,16 +23,17 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 class BASIPEmergencySwitch(CoordinatorEntity, SwitchEntity):
     """Representation of a BAS-IP emergency mode switch."""
 
-    def __init__(self, coordinator):
+    def __init__(self, coordinator, entry_id):
         """Initialize the switch."""
         super().__init__(coordinator)
+        self._entry_id = entry_id
         self._attr_name = "BAS-IP Emergency Mode"
-        self._attr_unique_id = f"{coordinator.host}_emergency"
+        self._attr_unique_id = f"{entry_id}_emergency"
         self._attr_is_on = False
         self._attr_icon = "mdi:alert"
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, coordinator.host)},
+            identifiers={(DOMAIN, entry_id)},
             name="BAS-IP Intercom",
             manufacturer="BAS-IP",
             model="Intercom Panel",

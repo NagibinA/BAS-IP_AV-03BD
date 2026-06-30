@@ -11,27 +11,29 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     coordinator = hass.data[DOMAIN][config_entry.entry_id]
+    entry_id = config_entry.entry_id
     sensors = []
     for sensor_key, sensor_info in SENSOR_TYPES.items():
-        sensors.append(BASIPSensor(coordinator, sensor_key, sensor_info))
-    sensors.append(BASIPDoorbellSensor(coordinator))
-    sensors.append(BASIPExitButtonSensor(coordinator))
-    sensors.append(BASIPDoorSensor(coordinator))
-    sensors.append(BASIPDoorOpenTooLongSensor(coordinator))
-    sensors.append(BASIPExitButtonStatusSensor(coordinator))
+        sensors.append(BASIPSensor(coordinator, entry_id, sensor_key, sensor_info))
+    sensors.append(BASIPDoorbellSensor(coordinator, entry_id))
+    sensors.append(BASIPExitButtonSensor(coordinator, entry_id))
+    sensors.append(BASIPDoorSensor(coordinator, entry_id))
+    sensors.append(BASIPDoorOpenTooLongSensor(coordinator, entry_id))
+    sensors.append(BASIPExitButtonStatusSensor(coordinator, entry_id))
     async_add_entities(sensors)
 
 
 class BASIPSensor(CoordinatorEntity, SensorEntity):
-    def __init__(self, coordinator, sensor_key, sensor_info):
+    def __init__(self, coordinator, entry_id, sensor_key, sensor_info):
         super().__init__(coordinator)
         self._sensor_key = sensor_key
+        self._entry_id = entry_id
         self._attr_name = f"BAS-IP {sensor_info['name']}"
-        self._attr_unique_id = f"{coordinator.host}_{sensor_key}"
+        self._attr_unique_id = f"{entry_id}_{sensor_key}"
         self._attr_icon = sensor_info.get("icon", "mdi:information")
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, coordinator.host)},
+            identifiers={(DOMAIN, entry_id)},
             name="BAS-IP Intercom",
             manufacturer="BAS-IP",
             model="Intercom Panel",
@@ -119,13 +121,14 @@ class BASIPSensor(CoordinatorEntity, SensorEntity):
 
 
 class BASIPDoorbellSensor(CoordinatorEntity, BinarySensorEntity):
-    def __init__(self, coordinator):
+    def __init__(self, coordinator, entry_id):
         super().__init__(coordinator)
+        self._entry_id = entry_id
         self._attr_name = "BAS-IP Doorbell"
-        self._attr_unique_id = f"{coordinator.host}_doorbell"
+        self._attr_unique_id = f"{entry_id}_doorbell"
         self._attr_icon = "mdi:doorbell"
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, coordinator.host)},
+            identifiers={(DOMAIN, entry_id)},
             name="BAS-IP Intercom",
             manufacturer="BAS-IP",
             model="Intercom Panel",
@@ -147,13 +150,14 @@ class BASIPDoorbellSensor(CoordinatorEntity, BinarySensorEntity):
 
 
 class BASIPExitButtonSensor(CoordinatorEntity, BinarySensorEntity):
-    def __init__(self, coordinator):
+    def __init__(self, coordinator, entry_id):
         super().__init__(coordinator)
+        self._entry_id = entry_id
         self._attr_name = "BAS-IP Exit Button Pressed"
-        self._attr_unique_id = f"{coordinator.host}_exit_button"
+        self._attr_unique_id = f"{entry_id}_exit_button"
         self._attr_icon = "mdi:exit-run"
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, coordinator.host)},
+            identifiers={(DOMAIN, entry_id)},
             name="BAS-IP Intercom",
             manufacturer="BAS-IP",
             model="Intercom Panel",
@@ -178,14 +182,15 @@ class BASIPExitButtonSensor(CoordinatorEntity, BinarySensorEntity):
 
 
 class BASIPDoorSensor(CoordinatorEntity, BinarySensorEntity):
-    def __init__(self, coordinator):
+    def __init__(self, coordinator, entry_id):
         super().__init__(coordinator)
+        self._entry_id = entry_id
         self._attr_name = "BAS-IP Door"
-        self._attr_unique_id = f"{coordinator.host}_door"
+        self._attr_unique_id = f"{entry_id}_door"
         self._attr_icon = "mdi:door"
         self._attr_is_on = False
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, coordinator.host)},
+            identifiers={(DOMAIN, entry_id)},
             name="BAS-IP Intercom",
             manufacturer="BAS-IP",
             model="Intercom Panel",
@@ -207,14 +212,15 @@ class BASIPDoorSensor(CoordinatorEntity, BinarySensorEntity):
 
 
 class BASIPDoorOpenTooLongSensor(CoordinatorEntity, BinarySensorEntity):
-    def __init__(self, coordinator):
+    def __init__(self, coordinator, entry_id):
         super().__init__(coordinator)
+        self._entry_id = entry_id
         self._attr_name = "BAS-IP Door Open Too Long"
-        self._attr_unique_id = f"{coordinator.host}_door_open_too_long"
+        self._attr_unique_id = f"{entry_id}_door_open_too_long"
         self._attr_icon = "mdi:clock-alert"
         self._attr_is_on = False
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, coordinator.host)},
+            identifiers={(DOMAIN, entry_id)},
             name="BAS-IP Intercom",
             manufacturer="BAS-IP",
             model="Intercom Panel",
@@ -236,15 +242,16 @@ class BASIPDoorOpenTooLongSensor(CoordinatorEntity, BinarySensorEntity):
 
 
 class BASIPExitButtonStatusSensor(CoordinatorEntity, BinarySensorEntity):
-    def __init__(self, coordinator):
+    def __init__(self, coordinator, entry_id):
         super().__init__(coordinator)
+        self._entry_id = entry_id
         self._attr_name = "BAS-IP Exit Button Enabled"
-        self._attr_unique_id = f"{coordinator.host}_exit_button_enabled"
+        self._attr_unique_id = f"{entry_id}_exit_button_enabled"
         self._attr_icon = "mdi:exit-run"
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
         self._attr_is_on = False
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, coordinator.host)},
+            identifiers={(DOMAIN, entry_id)},
             name="BAS-IP Intercom",
             manufacturer="BAS-IP",
             model="Intercom Panel",

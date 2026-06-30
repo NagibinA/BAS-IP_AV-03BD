@@ -47,10 +47,9 @@ API_LOGS_ITEMS = "/api/v1/log/items"
 API_DOOR_STATUS = "/api/v1/access/door/status"
 API_DOOR_SENSOR = "/api/v1/access/door/sensor"
 API_EXIT_BUTTON = "/api/v1/access/exit/button/toggle"
-
-# Network settings
 API_NETWORK_STATIC = "/api/v1/network/settings/static"
 API_NETWORK_DHCP = "/api/v1/network/settings/dhcp"
+API_CHANGE_PASSWORD = "/api/v1/security/password/web/admin"
 
 # Default settings
 DEFAULT_PASSWORD = "123456"

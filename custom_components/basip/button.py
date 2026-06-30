@@ -10,23 +10,25 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     coordinator = hass.data[DOMAIN][config_entry.entry_id]
+    entry_id = config_entry.entry_id
     buttons = [
-        BASIPRebootButton(coordinator),
-        BASIPCallStartButton(coordinator),
-        BASIPCallEndButton(coordinator),
+        BASIPRebootButton(coordinator, entry_id),
+        BASIPCallStartButton(coordinator, entry_id),
+        BASIPCallEndButton(coordinator, entry_id),
     ]
     async_add_entities(buttons)
 
 
 class BASIPRebootButton(CoordinatorEntity, ButtonEntity):
-    def __init__(self, coordinator):
+    def __init__(self, coordinator, entry_id):
         super().__init__(coordinator)
+        self._entry_id = entry_id
         self._attr_name = "BAS-IP Reboot"
-        self._attr_unique_id = f"{coordinator.host}_reboot"
+        self._attr_unique_id = f"{entry_id}_reboot"
         self._attr_icon = "mdi:restart"
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, coordinator.host)},
+            identifiers={(DOMAIN, entry_id)},
             name="BAS-IP Intercom",
             manufacturer="BAS-IP",
             model="Intercom Panel",
@@ -41,13 +43,14 @@ class BASIPRebootButton(CoordinatorEntity, ButtonEntity):
 
 
 class BASIPCallStartButton(CoordinatorEntity, ButtonEntity):
-    def __init__(self, coordinator):
+    def __init__(self, coordinator, entry_id):
         super().__init__(coordinator)
+        self._entry_id = entry_id
         self._attr_name = "BAS-IP Call"
-        self._attr_unique_id = f"{coordinator.host}_call"
+        self._attr_unique_id = f"{entry_id}_call"
         self._attr_icon = "mdi:phone"
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, coordinator.host)},
+            identifiers={(DOMAIN, entry_id)},
             name="BAS-IP Intercom",
             manufacturer="BAS-IP",
             model="Intercom Panel",
@@ -66,13 +69,14 @@ class BASIPCallStartButton(CoordinatorEntity, ButtonEntity):
 
 
 class BASIPCallEndButton(CoordinatorEntity, ButtonEntity):
-    def __init__(self, coordinator):
+    def __init__(self, coordinator, entry_id):
         super().__init__(coordinator)
+        self._entry_id = entry_id
         self._attr_name = "BAS-IP Call End"
-        self._attr_unique_id = f"{coordinator.host}_call_end"
+        self._attr_unique_id = f"{entry_id}_call_end"
         self._attr_icon = "mdi:phone-hangup"
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, coordinator.host)},
+            identifiers={(DOMAIN, entry_id)},
             name="BAS-IP Intercom",
             manufacturer="BAS-IP",
             model="Intercom Panel",

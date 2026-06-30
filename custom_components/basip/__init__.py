@@ -31,21 +31,26 @@ VOLUME_SCHEMA = vol.Schema({
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _LOGGER.info("Setting up BAS-IP for %s", entry.data.get("host"))
     
+    call_numbers = entry.data.get("call_numbers")
+    if not call_numbers:
+        call_numbers = entry.options.get("call_numbers", ["79020"])
+    
     config = dict(entry.data)
     config["options"] = entry.options
-    config["call_numbers"] = entry.options.get("call_numbers", ["79020"])
+    config["call_numbers"] = call_numbers
     
     coordinator = BASIPCoordinator(hass, config)
     coordinator._entry_id = entry.entry_id
     
     valid = await coordinator.async_validate_auth()
     if not valid:
-        _LOGGER.error("Failed to authenticate with BAS-IP")
+        _LOGGER.error("Failed to authenticate with BAS-IP at %s", entry.data.get("host"))
         return False
     
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = coordinator
     
+    # Настраиваем платформы
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     await async_register_services(hass, coordinator)
     
@@ -53,13 +58,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     
     entry.async_on_unload(entry.add_update_listener(async_update_options))
     
-    _LOGGER.info("BAS-IP integration setup complete")
+    _LOGGER.info("BAS-IP integration setup complete for %s", entry.data.get("host"))
     return True
 
 async def async_update_options(hass: HomeAssistant, entry: ConfigEntry):
     """Обновить опции интеграции."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
-    coordinator.update_call_numbers(entry.options)
+    
+    call_numbers = entry.options.get("call_numbers")
+    if call_numbers:
+        data = dict(entry.data)
+        data["call_numbers"] = call_numbers
+        hass.config_entries.async_update_entry(entry, data=data)
+        coordinator.update_call_numbers(entry.options)
+    
     _LOGGER.info("BAS-IP options updated")
 
 async def async_register_services(hass: HomeAssistant, coordinator: BASIPCoordinator):
@@ -115,6 +127,7 @@ async def async_register_services(hass: HomeAssistant, coordinator: BASIPCoordin
         await coordinator.async_set_volume(call.data.get("volume"))
         _LOGGER.info(f"Volume set to {call.data.get('volume')}")
 
+    # Регистрируем сервисы
     hass.services.async_register(DOMAIN, "open_lock", handle_open_lock)
     hass.services.async_register(DOMAIN, "emergency_open", handle_emergency_open, schema=EMERGENCY_SCHEMA)
     hass.services.async_register(DOMAIN, "emergency_close", handle_emergency_close, schema=LOCK_NUMBER_SCHEMA)
@@ -128,10 +141,11 @@ async def async_register_services(hass: HomeAssistant, coordinator: BASIPCoordin
     hass.services.async_register(DOMAIN, "set_volume", handle_set_volume, schema=VOLUME_SCHEMA)
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    _LOGGER.info("Unloading BAS-IP integration")
+    _LOGGER.info("Unloading BAS-IP integration for %s", entry.data.get("host"))
     
-    coordinator = hass.data[DOMAIN][entry.entry_id]
-    await coordinator.async_stop_button_updater()
+    if entry.entry_id in hass.data.get(DOMAIN, {}):
+        coordinator = hass.data[DOMAIN][entry.entry_id]
+        await coordinator.async_stop_button_updater()
     
     services = [
         "open_lock", "emergency_open", "emergency_close",
@@ -140,10 +154,12 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "set_volume"
     ]
     for service in services:
-        hass.services.async_remove(DOMAIN, service)
+        if hass.services.has_service(DOMAIN, service):
+            hass.services.async_remove(DOMAIN, service)
     
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id)
+        if DOMAIN in hass.data and entry.entry_id in hass.data[DOMAIN]:
+            hass.data[DOMAIN].pop(entry.entry_id)
     
     return unload_ok

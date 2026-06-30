@@ -13,21 +13,23 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the BAS-IP camera platform."""
     coordinator = hass.data[DOMAIN][config_entry.entry_id]
-    async_add_entities([BASIPCamera(coordinator)])
+    entry_id = config_entry.entry_id
+    async_add_entities([BASIPCamera(coordinator, entry_id)])
 
 
 class BASIPCamera(Camera):
     """BAS-IP Camera with RTSP streaming and snapshot."""
 
-    def __init__(self, coordinator):
+    def __init__(self, coordinator, entry_id):
         """Initialize the camera."""
         super().__init__()
         
         self.coordinator = coordinator
+        self._entry_id = entry_id
         self._attr_name = "BAS-IP Camera"
-        self._attr_unique_id = f"{coordinator.host}_camera"
+        self._attr_unique_id = f"{entry_id}_camera"
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, coordinator.host)},
+            identifiers={(DOMAIN, entry_id)},
             name="BAS-IP Intercom",
             manufacturer="BAS-IP",
             model="Intercom Panel",
@@ -43,24 +45,30 @@ class BASIPCamera(Camera):
     async def async_added_to_hass(self):
         """When entity is added to Home Assistant."""
         await super().async_added_to_hass()
-        
+        await self._update_rtsp_config()
+
+    async def _update_rtsp_config(self):
+        """Update RTSP configuration."""
         try:
             rtsp_data = await self.coordinator.async_request(API_DEVICE_RTSP, "GET")
             if rtsp_data and isinstance(rtsp_data, dict):
                 self._rtsp_username = rtsp_data.get("username", "user")
                 self._rtsp_password = rtsp_data.get("password", "1234")
-                _LOGGER.info("RTSP credentials received from panel")
+                _LOGGER.debug("RTSP credentials received from panel")
             else:
                 self._rtsp_username = "user"
                 self._rtsp_password = "1234"
                 _LOGGER.warning("Could not get RTSP credentials, using defaults")
             
+            # Используем актуальный IP из координатора
             self._rtsp_url = f"rtsp://{self._rtsp_username}:{self._rtsp_password}@{self.coordinator.host}:8554/ch01"
             self._rtsp_configured = True
-            _LOGGER.info("RTSP URL configured")
+            _LOGGER.info("RTSP URL configured: rtsp://%s:****@%s:8554/ch01", 
+                        self._rtsp_username, self.coordinator.host)
             
         except Exception as e:
             _LOGGER.error(f"Error setting up RTSP: {e}")
+            self._rtsp_configured = False
 
     @property
     def is_streaming(self) -> bool:
@@ -69,6 +77,8 @@ class BASIPCamera(Camera):
 
     async def stream_source(self):
         """Return the RTSP stream source."""
+        # Обновляем URL перед стримингом, на случай смены IP
+        await self._update_rtsp_config()
         return self._rtsp_url
 
     async def async_camera_image(self, width=None, height=None):
@@ -103,7 +113,9 @@ class BASIPCamera(Camera):
         attrs = {
             "is_streaming": self.is_streaming,
             "stream_source": "RTSP",
+            "host": self.coordinator.host,
         }
         if self._rtsp_url:
-            attrs["rtsp_url"] = self._rtsp_url
+            # Скрываем пароль в атрибутах
+            attrs["rtsp_url"] = self._rtsp_url.replace(self._rtsp_password, "****")
         return attrs

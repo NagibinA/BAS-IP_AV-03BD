@@ -1,0 +1,405 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "BAS-IP Intercom",
+        "description": "Enter your BAS-IP panel details",
+        "data": {
+          "host": "IP Address",
+          "password": "Password"
+        }
+      },
+      "numbers": {
+        "title": "Phone Numbers",
+        "description": "Enter up to 5 phone numbers for calls",
+        "data": {
+          "call_number_1": "Number 1",
+          "call_number_2": "Number 2",
+          "call_number_3": "Number 3",
+          "call_number_4": "Number 4",
+          "call_number_5": "Number 5"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to BAS-IP panel. Check IP address and password.",
+      "cannot_connect_current": "Failed to connect to panel using current IP address. Check connection.",
+      "password_required": "Password is required",
+      "host_required": "IP address is required",
+      "ip_required": "IP address is required",
+      "ip_occupied": "IP address is already in use by another device.",
+      "ip_change_failed": "Failed to change IP address on the panel.",
+      "password_change_failed": "Failed to change password on the panel.",
+      "ip_unchanged": "IP address unchanged. Exiting without changes.",
+      "unknown": "Unknown error"
+    },
+    "abort": {
+      "already_configured": "This device is already configured",
+      "no_selection": "No section selected",
+      "ip_unchanged": "IP address unchanged. Exiting without changes."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "BAS-IP Intercom Settings",
+        "description": "Select a section to configure",
+        "menu_options": {
+          "change_ip": "📡 Change IP Address",
+          "change_password": "🔑 Change Password",
+          "general": "⚙️ General Settings",
+          "numbers": "📞 Phone Numbers"
+        }
+      },
+      "change_ip": {
+        "title": "Change IP Address",
+        "description": "Change network settings of the BAS-IP panel",
+        "data": {
+          "ip_address": "New IP Address",
+          "mask": "Subnet Mask",
+          "gateway": "Gateway",
+          "dns": "DNS Server"
+        }
+      },
+      "change_password": {
+        "title": "Change Password",
+        "description": "Change the administrator password",
+        "data": {
+          "password": "New Password"
+        }
+      },
+      "general": {
+        "title": "General Settings",
+        "description": "Configure integration settings",
+        "data": {
+          "update_interval": "Update interval (seconds)"
+        }
+      },
+      "numbers": {
+        "title": "Phone Numbers",
+        "description": "Enter up to 5 phone numbers for calls",
+        "data": {
+          "call_number_1": "Number 1",
+          "call_number_2": "Number 2",
+          "call_number_3": "Number 3",
+          "call_number_4": "Number 4",
+          "call_number_5": "Number 5"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to BAS-IP panel. Check IP address and password.",
+      "cannot_connect_current": "Failed to connect to panel using current IP address.",
+      "ip_required": "IP address is required",
+      "ip_occupied": "IP address is already in use by another device.",
+      "ip_change_failed": "Failed to change IP address on the panel.",
+      "password_change_failed": "Failed to change password on the panel.",
+      "ip_unchanged": "IP address unchanged. Exiting without changes.",
+      "password_required": "Password is required"
+    },
+    "abort": {
+      "ip_unchanged": "IP address unchanged. Exiting without changes."
+    }
+  },
+  "entity": {
+    "lock": {
+      "door_lock": {
+        "name": "Door",
+        "state": {
+          "locked": "Locked",
+          "unlocking": "Unlocking..."
+        },
+        "lock": "Lock",
+        "unlock": "Unlock"
+      }
+    },
+    "switch": {
+      "emergency_mode": {
+        "name": "Emergency Mode",
+        "state": {
+          "on": "On",
+          "off": "Off"
+        }
+      },
+      "auto_answer": {
+        "name": "Auto Answer",
+        "state": {
+          "on": "On",
+          "off": "Off"
+        }
+      },
+      "call_drop": {
+        "name": "Call Drop by Call Button",
+        "state": {
+          "on": "On",
+          "off": "Off"
+        }
+      },
+      "call_drop_lock_open": {
+        "name": "Call Drop on Lock Open",
+        "state": {
+          "on": "On",
+          "off": "Off"
+        }
+      }
+    },
+    "button": {
+      "reboot": {
+        "name": "Reboot"
+      },
+      "call": {
+        "name": "Call"
+      },
+      "call_end": {
+        "name": "End Call"
+      }
+    },
+    "number": {
+      "volume": {
+        "name": "Call Volume"
+      }
+    },
+    "select": {
+      "call_number_select": {
+        "name": "Call Number"
+      }
+    },
+    "camera": {
+      "bas_ip_camera": {
+        "name": "Camera"
+      }
+    },
+    "sensor": {
+      "bas_ip_info": {
+        "name": "Device Info"
+      },
+      "bas_ip_network_settings": {
+        "name": "Network Settings"
+      },
+      "bas_ip_network_mac": {
+        "name": "MAC Address"
+      },
+      "bas_ip_network_ntp": {
+        "name": "NTP Server"
+      },
+      "bas_ip_network_dst": {
+        "name": "DST Settings"
+      },
+      "bas_ip_network_timezone": {
+        "name": "Timezone"
+      },
+      "bas_ip_network_management_link": {
+        "name": "Management Link"
+      },
+      "bas_ip_network_management_server": {
+        "name": "Management Server"
+      },
+      "bas_ip_network_management_server_cert": {
+        "name": "Server Certificate"
+      },
+      "bas_ip_sip_status": {
+        "name": "SIP Status"
+      },
+      "bas_ip_sip_settings": {
+        "name": "SIP Settings"
+      },
+      "bas_ip_sip_enable": {
+        "name": "SIP Enabled"
+      },
+      "bas_ip_sip_reregister": {
+        "name": "SIP Reregister"
+      },
+      "bas_ip_call_auto_answer": {
+        "name": "Auto Answer"
+      },
+      "bas_ip_call_drop": {
+        "name": "Call Drop by Call Button"
+      },
+      "bas_ip_call_drop_lock_open": {
+        "name": "Call Drop on Lock Open"
+      },
+      "bas_ip_rescue_service": {
+        "name": "Rescue Service"
+      },
+      "bas_ip_device_time": {
+        "name": "Device Time"
+      },
+      "bas_ip_device_language": {
+        "name": "Language"
+      },
+      "bas_ip_device_video": {
+        "name": "Video Resolution"
+      },
+      "bas_ip_device_rtsp": {
+        "name": "RTSP Settings"
+      },
+      "bas_ip_device_payload": {
+        "name": "Payload Codec"
+      },
+      "bas_ip_device_volume": {
+        "name": "Volume"
+      },
+      "bas_ip_device_relay": {
+        "name": "Relay Settings"
+      },
+      "bas_ip_device_mode": {
+        "name": "Device Mode"
+      },
+      "bas_ip_lock_type": {
+        "name": "Lock Type"
+      },
+      "bas_ip_master_card": {
+        "name": "Master Card"
+      },
+      "bas_ip_input_code": {
+        "name": "Access Code"
+      },
+      "bas_ip_door_sensor_settings": {
+        "name": "Door Sensor Settings"
+      },
+      "bas_ip_exit_button_status": {
+        "name": "Exit Button Status"
+      }
+    },
+    "binary_sensor": {
+      "doorbell": {
+        "name": "Doorbell"
+      },
+      "exit_button": {
+        "name": "Exit Button"
+      },
+      "door_sensor": {
+        "name": "Door",
+        "state": {
+          "on": "Open",
+          "off": "Closed"
+        }
+      },
+      "door_open_too_long": {
+        "name": "Door Open Too Long",
+        "state": {
+          "on": "Warning",
+          "off": "Normal"
+        }
+      },
+      "exit_button_status": {
+        "name": "Exit Button Enabled",
+        "state": {
+          "on": "Enabled",
+          "off": "Disabled"
+        }
+      }
+    }
+  },
+  "services": {
+    "open_lock": {
+      "name": "Open Lock",
+      "description": "Opens the door lock"
+    },
+    "emergency_open": {
+      "name": "Emergency Open",
+      "description": "Opens the lock in emergency mode",
+      "fields": {
+        "lock_number": {
+          "name": "Lock Number",
+          "description": "Lock number to control (1-4)"
+        },
+        "unlock_time": {
+          "name": "Unlock Time",
+          "description": "Time in milliseconds to keep the lock open"
+        }
+      }
+    },
+    "emergency_close": {
+      "name": "Close Emergency Mode",
+      "description": "Closes emergency mode",
+      "fields": {
+        "lock_number": {
+          "name": "Lock Number",
+          "description": "Lock number to control (1-4)"
+        }
+      }
+    },
+    "reboot": {
+      "name": "Reboot",
+      "description": "Reboots the BAS-IP device"
+    },
+    "take_photo": {
+      "name": "Take Photo",
+      "description": "Takes a snapshot from the camera"
+    },
+    "call_start": {
+      "name": "Start Call",
+      "description": "Starts an outgoing call",
+      "fields": {
+        "number": {
+          "name": "Number",
+          "description": "Phone number to call"
+        }
+      }
+    },
+    "call_end": {
+      "name": "End Call",
+      "description": "Ends the current call"
+    },
+    "set_language": {
+      "name": "Set Language",
+      "description": "Changes the device interface language",
+      "fields": {
+        "language": {
+          "name": "Language",
+          "description": "Language code"
+        }
+      }
+    },
+    "set_static_ip": {
+      "name": "Set Static IP",
+      "description": "Configures static IP address",
+      "fields": {
+        "ip_address": {
+          "name": "IP Address",
+          "description": "Static IP address"
+        },
+        "mask": {
+          "name": "Subnet Mask",
+          "description": "Subnet mask"
+        },
+        "gateway": {
+          "name": "Gateway",
+          "description": "Gateway IP address"
+        },
+        "dns": {
+          "name": "DNS Server",
+          "description": "DNS server IP address"
+        }
+      }
+    },
+    "enable_dhcp": {
+      "name": "Enable DHCP",
+      "description": "Enables DHCP configuration"
+    },
+    "set_volume": {
+      "name": "Set Volume",
+      "description": "Sets speaker volume level (1-6)",
+      "fields": {
+        "volume": {
+          "name": "Volume Level",
+          "description": "Volume level (1-6)"
+        }
+      }
+    }
+  },
+  "selector": {
+    "language": {
+      "options": {
+        "English": "English",
+        "Russian": "Russian",
+        "Spanish": "Spanish",
+        "Turkish": "Turkish",
+        "Deutsch": "German",
+        "Italian": "Italian",
+        "French": "French"
+      }
+    }
+  }
+}

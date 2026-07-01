@@ -6,10 +6,7 @@
         "description": "Введите данные вашей панели BAS-IP",
         "data": {
           "host": "IP-адрес",
-          "password": "Пароль",
-          "mask": "Маска подсети",
-          "gateway": "Шлюз",
-          "dns": "DNS-сервер"
+          "password": "Пароль"
         }
       },
       "numbers": {
@@ -38,7 +35,8 @@
     },
     "abort": {
       "already_configured": "Это устройство уже настроено",
-      "no_selection": "Раздел не выбран"
+      "no_selection": "Раздел не выбран",
+      "ip_unchanged": "IP-адрес не изменён. Выход без изменений."
     }
   },
   "options": {
@@ -47,10 +45,10 @@
         "title": "Настройки BAS-IP Интерком",
         "description": "Выберите раздел для настройки",
         "menu_options": {
-          "change_ip": "Смена IP-адреса",
-          "change_password": "Смена пароля",
-          "general": "Общие настройки",
-          "numbers": "Настройка номеров"
+          "change_ip": "📡 Смена IP-адреса",
+          "change_password": "🔑 Смена пароля",
+          "general": "⚙️ Общие настройки",
+          "numbers": "📞 Настройка номеров"
         }
       },
       "change_ip": {
@@ -101,6 +99,307 @@
     },
     "abort": {
       "ip_unchanged": "IP-адрес не изменён. Выход без изменений."
+    }
+  },
+  "entity": {
+    "lock": {
+      "door_lock": {
+        "name": "Дверь",
+        "state": {
+          "locked": "Закрыта",
+          "unlocking": "Открывается..."
+        },
+        "lock": "Закрыть",
+        "unlock": "Открыть"
+      }
+    },
+    "switch": {
+      "emergency_mode": {
+        "name": "Аварийный режим",
+        "state": {
+          "on": "Включён",
+          "off": "Выключен"
+        }
+      },
+      "auto_answer": {
+        "name": "Автоответ на звонок",
+        "state": {
+          "on": "Включён",
+          "off": "Выключен"
+        }
+      },
+      "call_drop": {
+        "name": "Завершить вызов кнопкой вызова",
+        "state": {
+          "on": "Включён",
+          "off": "Выключен"
+        }
+      },
+      "call_drop_lock_open": {
+        "name": "Завершить вызов при открытии замка",
+        "state": {
+          "on": "Включён",
+          "off": "Выключен"
+        }
+      }
+    },
+    "button": {
+      "reboot": {
+        "name": "Перезагрузка"
+      },
+      "call": {
+        "name": "Вызов"
+      },
+      "call_end": {
+        "name": "Завершить вызов"
+      }
+    },
+    "number": {
+      "volume": {
+        "name": "Громкость звонка"
+      }
+    },
+    "select": {
+      "call_number_select": {
+        "name": "Номер для вызова"
+      }
+    },
+    "camera": {
+      "bas_ip_camera": {
+        "name": "Камера"
+      }
+    },
+    "sensor": {
+      "bas_ip_info": {
+        "name": "Информация об устройстве"
+      },
+      "bas_ip_network_settings": {
+        "name": "Сетевые настройки"
+      },
+      "bas_ip_network_mac": {
+        "name": "MAC-адрес"
+      },
+      "bas_ip_network_ntp": {
+        "name": "NTP-сервер"
+      },
+      "bas_ip_network_dst": {
+        "name": "Настройки DST"
+      },
+      "bas_ip_network_timezone": {
+        "name": "Часовой пояс"
+      },
+      "bas_ip_network_management_link": {
+        "name": "Настройки Link"
+      },
+      "bas_ip_network_management_server": {
+        "name": "Сервер управления"
+      },
+      "bas_ip_network_management_server_cert": {
+        "name": "Сертификат сервера"
+      },
+      "bas_ip_sip_status": {
+        "name": "Статус SIP"
+      },
+      "bas_ip_sip_settings": {
+        "name": "Настройки SIP"
+      },
+      "bas_ip_sip_enable": {
+        "name": "SIP включён"
+      },
+      "bas_ip_sip_reregister": {
+        "name": "Перерегистрация SIP"
+      },
+      "bas_ip_call_auto_answer": {
+        "name": "Автоответ"
+      },
+      "bas_ip_call_drop": {
+        "name": "Завершить вызов кнопкой вызова"
+      },
+      "bas_ip_call_drop_lock_open": {
+        "name": "Завершить вызов при открытии замка"
+      },
+      "bas_ip_rescue_service": {
+        "name": "Служба спасения"
+      },
+      "bas_ip_device_time": {
+        "name": "Время устройства"
+      },
+      "bas_ip_device_language": {
+        "name": "Язык"
+      },
+      "bas_ip_device_video": {
+        "name": "Разрешение видео"
+      },
+      "bas_ip_device_rtsp": {
+        "name": "Настройки RTSP"
+      },
+      "bas_ip_device_payload": {
+        "name": "Кодек Payload"
+      },
+      "bas_ip_device_volume": {
+        "name": "Громкость"
+      },
+      "bas_ip_device_relay": {
+        "name": "Настройки реле"
+      },
+      "bas_ip_device_mode": {
+        "name": "Режим работы"
+      },
+      "bas_ip_lock_type": {
+        "name": "Тип замка"
+      },
+      "bas_ip_master_card": {
+        "name": "Мастер-карта"
+      },
+      "bas_ip_input_code": {
+        "name": "Код доступа"
+      },
+      "bas_ip_door_sensor_settings": {
+        "name": "Настройки датчика двери"
+      },
+      "bas_ip_exit_button_status": {
+        "name": "Статус кнопки выхода"
+      }
+    },
+    "binary_sensor": {
+      "doorbell": {
+        "name": "Звонок"
+      },
+      "exit_button": {
+        "name": "Кнопка выхода"
+      },
+      "door_sensor": {
+        "name": "Дверь",
+        "state": {
+          "on": "Открыта",
+          "off": "Закрыта"
+        }
+      },
+      "door_open_too_long": {
+        "name": "Дверь открыта слишком долго",
+        "state": {
+          "on": "Предупреждение",
+          "off": "Нормально"
+        }
+      },
+      "exit_button_status": {
+        "name": "Кнопка выхода включена",
+        "state": {
+          "on": "Включена",
+          "off": "Выключена"
+        }
+      }
+    }
+  },
+  "services": {
+    "open_lock": {
+      "name": "Открыть замок",
+      "description": "Открывает дверной замок"
+    },
+    "emergency_open": {
+      "name": "Аварийное открытие",
+      "description": "Открывает замок в аварийном режиме",
+      "fields": {
+        "lock_number": {
+          "name": "Номер замка",
+          "description": "Номер замка для управления (1-4)"
+        },
+        "unlock_time": {
+          "name": "Время открытия",
+          "description": "Время в миллисекундах, на которое замок остаётся открытым"
+        }
+      }
+    },
+    "emergency_close": {
+      "name": "Закрыть аварийный режим",
+      "description": "Закрывает аварийный режим",
+      "fields": {
+        "lock_number": {
+          "name": "Номер замка",
+          "description": "Номер замка для управления (1-4)"
+        }
+      }
+    },
+    "reboot": {
+      "name": "Перезагрузка",
+      "description": "Перезагружает устройство BAS-IP"
+    },
+    "take_photo": {
+      "name": "Сделать снимок",
+      "description": "Делает снимок с камеры"
+    },
+    "call_start": {
+      "name": "Начать звонок",
+      "description": "Начинает исходящий вызов",
+      "fields": {
+        "number": {
+          "name": "Номер",
+          "description": "Номер телефона для вызова"
+        }
+      }
+    },
+    "call_end": {
+      "name": "Завершить звонок",
+      "description": "Завершает текущий вызов"
+    },
+    "set_language": {
+      "name": "Установить язык",
+      "description": "Изменяет язык интерфейса устройства",
+      "fields": {
+        "language": {
+          "name": "Язык",
+          "description": "Код языка"
+        }
+      }
+    },
+    "set_static_ip": {
+      "name": "Установить статический IP",
+      "description": "Настраивает статический IP-адрес",
+      "fields": {
+        "ip_address": {
+          "name": "IP-адрес",
+          "description": "Статический IP-адрес"
+        },
+        "mask": {
+          "name": "Маска подсети",
+          "description": "Маска подсети"
+        },
+        "gateway": {
+          "name": "Шлюз",
+          "description": "IP-адрес шлюза"
+        },
+        "dns": {
+          "name": "DNS-сервер",
+          "description": "IP-адрес DNS-сервера"
+        }
+      }
+    },
+    "enable_dhcp": {
+      "name": "Включить DHCP",
+      "description": "Включает получение настроек по DHCP"
+    },
+    "set_volume": {
+      "name": "Установить громкость",
+      "description": "Устанавливает уровень громкости динамика (1-6)",
+      "fields": {
+        "volume": {
+          "name": "Уровень громкости",
+          "description": "Уровень громкости (1-6)"
+        }
+      }
+    }
+  },
+  "selector": {
+    "language": {
+      "options": {
+        "English": "Английский",
+        "Russian": "Русский",
+        "Spanish": "Испанский",
+        "Turkish": "Турецкий",
+        "Deutsch": "Немецкий",
+        "Italian": "Итальянский",
+        "French": "Французский"
+      }
     }
   }
 }

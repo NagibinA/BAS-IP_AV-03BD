@@ -1,165 +1,146 @@
 """BAS-IP Intercom integration."""
 import logging
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, ServiceCall
-from homeassistant.helpers import config_validation as cv
-import voluptuous as vol
-from .const import DOMAIN, PLATFORMS
+from homeassistant.core import HomeAssistant
+from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_PORT
+from homeassistant.helpers import device_registry as dr
+from .const import DOMAIN, PLATFORMS, DEFAULT_UPDATE_INTERVAL, MANUFACTURER, MODEL
 from .coordinator import BASIPCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
-LOCK_NUMBER_SCHEMA = vol.Schema({vol.Optional("lock_number", default=1): cv.positive_int})
-EMERGENCY_SCHEMA = vol.Schema({
-    vol.Optional("lock_number", default=1): cv.positive_int,
-    vol.Optional("unlock_time", default=10000): cv.positive_int,
-})
-CALL_SCHEMA = vol.Schema({vol.Required("number"): cv.string})
-LANGUAGE_SCHEMA = vol.Schema({
-    vol.Required("language"): vol.In(["English", "Russian", "Ukrainian", "Spanish", "Turkish", "Deutsch", "Italian", "French"])
-})
-IP_CONFIG_SCHEMA = vol.Schema({
-    vol.Required("ip_address"): cv.string,
-    vol.Required("mask"): cv.string,
-    vol.Required("gateway"): cv.string,
-    vol.Required("dns"): cv.string,
-})
-VOLUME_SCHEMA = vol.Schema({
-    vol.Required("volume"): vol.All(vol.Coerce(int), vol.Range(min=1, max=6))
-})
-
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    _LOGGER.info("Setting up BAS-IP for %s", entry.data.get("host"))
+    """Set up BAS-IP from a config entry."""
+    config = {**entry.data}
     
-    call_numbers = entry.data.get("call_numbers")
-    if not call_numbers:
-        call_numbers = entry.options.get("call_numbers", ["79020"])
+    # Добавляем опции
+    if entry.options:
+        config.update(entry.options)
     
-    config = dict(entry.data)
-    config["options"] = entry.options
-    config["call_numbers"] = call_numbers
-    
+    # Создаем координатор
     coordinator = BASIPCoordinator(hass, config)
-    coordinator._entry_id = entry.entry_id
     
-    valid = await coordinator.async_validate_auth()
-    if not valid:
-        _LOGGER.error("Failed to authenticate with BAS-IP at %s", entry.data.get("host"))
-        return False
+    # Выполняем первое обновление
+    await coordinator.async_config_entry_first_refresh()
     
+    # Сохраняем координатор в hass.data
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = coordinator
     
-    # Настраиваем платформы
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    await async_register_services(hass, coordinator)
-    
+    # Запускаем обновление кнопок (для событий звонка, кнопки выхода, двери)
     coordinator.start_button_updater()
     
+    # Настраиваем все платформы
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    
+    # Обновляем опции при изменении
     entry.async_on_unload(entry.add_update_listener(async_update_options))
     
-    _LOGGER.info("BAS-IP integration setup complete for %s", entry.data.get("host"))
+    # Регистрируем устройство в device registry
+    device_registry = dr.async_get(hass)
+    
+    # Получаем версию ПО из данных координатора
+    sw_version = "Unknown"
+    if coordinator.data and isinstance(coordinator.data, dict):
+        info = coordinator.data.get("bas_ip_info", {})
+        if isinstance(info, dict):
+            sw_version = info.get("firmware_version", "Unknown")
+            _LOGGER.debug(f"📱 Device firmware version: {sw_version}")
+    
+    # Получаем модель устройства
+    device_model = MODEL
+    if coordinator.data and isinstance(coordinator.data, dict):
+        info = coordinator.data.get("bas_ip_info", {})
+        if isinstance(info, dict):
+            model = info.get("device_model", "")
+            if model:
+                device_model = model.upper()
+    
+    device_registry.async_get_or_create(
+        config_entry_id=entry.entry_id,
+        identifiers={(DOMAIN, entry.entry_id)},
+        name=f"BAS-IP {device_model}",
+        manufacturer=MANUFACTURER,
+        model=device_model,
+        sw_version=sw_version,
+        configuration_url=f"http://{coordinator.host}",
+    )
+    
+    _LOGGER.info(f"✅ BAS-IP integration setup completed for {coordinator.host} (FW: {sw_version})")
     return True
 
-async def async_update_options(hass: HomeAssistant, entry: ConfigEntry):
-    """Обновить опции интеграции."""
+async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Update options."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
     
-    call_numbers = entry.options.get("call_numbers")
-    if call_numbers:
-        data = dict(entry.data)
-        data["call_numbers"] = call_numbers
-        hass.config_entries.async_update_entry(entry, data=data)
+    # Обновляем интервал обновления
+    if "update_interval" in entry.options:
+        coordinator.update_interval = entry.options.get(
+            "update_interval", DEFAULT_UPDATE_INTERVAL
+        )
+    
+    # Обновляем номера для звонков
+    if "call_numbers" in entry.options:
         coordinator.update_call_numbers(entry.options)
     
-    _LOGGER.info("BAS-IP options updated")
-
-async def async_register_services(hass: HomeAssistant, coordinator: BASIPCoordinator):
-    async def handle_open_lock(call: ServiceCall):
-        await coordinator.async_open_lock()
-        _LOGGER.info("Lock opened")
-    
-    async def handle_emergency_open(call: ServiceCall):
-        await coordinator.async_emergency_open(
-            call.data.get("lock_number", 1),
-            call.data.get("unlock_time", 10000)
-        )
-        _LOGGER.info("Emergency open activated")
-    
-    async def handle_emergency_close(call: ServiceCall):
-        await coordinator.async_emergency_close(call.data.get("lock_number", 1))
-        _LOGGER.info("Emergency mode closed")
-    
-    async def handle_reboot(call: ServiceCall):
-        await coordinator.async_reboot()
-        _LOGGER.info("Device reboot initiated")
-    
-    async def handle_take_photo(call: ServiceCall):
-        await coordinator.async_get_photo()
-        _LOGGER.info("Photo taken")
-    
-    async def handle_call_start(call: ServiceCall):
-        await coordinator.async_call_start(call.data.get("number"))
-        _LOGGER.info("Call started")
-    
-    async def handle_call_end(call: ServiceCall):
-        await coordinator.async_call_end()
-        _LOGGER.info("Call ended")
-    
-    async def handle_set_language(call: ServiceCall):
-        await coordinator.async_set_language(call.data.get("language"))
-        _LOGGER.info("Language set")
-    
-    async def handle_set_static_ip(call: ServiceCall):
-        await coordinator.async_set_static_ip(
-            call.data.get("ip_address"),
-            call.data.get("mask"),
-            call.data.get("gateway"),
-            call.data.get("dns")
-        )
-        _LOGGER.info("Static IP configured")
-    
-    async def handle_enable_dhcp(call: ServiceCall):
-        await coordinator.async_enable_dhcp()
-        _LOGGER.info("DHCP enabled")
-    
-    async def handle_set_volume(call: ServiceCall):
-        await coordinator.async_set_volume(call.data.get("volume"))
-        _LOGGER.info(f"Volume set to {call.data.get('volume')}")
-
-    # Регистрируем сервисы
-    hass.services.async_register(DOMAIN, "open_lock", handle_open_lock)
-    hass.services.async_register(DOMAIN, "emergency_open", handle_emergency_open, schema=EMERGENCY_SCHEMA)
-    hass.services.async_register(DOMAIN, "emergency_close", handle_emergency_close, schema=LOCK_NUMBER_SCHEMA)
-    hass.services.async_register(DOMAIN, "reboot", handle_reboot)
-    hass.services.async_register(DOMAIN, "take_photo", handle_take_photo)
-    hass.services.async_register(DOMAIN, "call_start", handle_call_start, schema=CALL_SCHEMA)
-    hass.services.async_register(DOMAIN, "call_end", handle_call_end)
-    hass.services.async_register(DOMAIN, "set_language", handle_set_language, schema=LANGUAGE_SCHEMA)
-    hass.services.async_register(DOMAIN, "set_static_ip", handle_set_static_ip, schema=IP_CONFIG_SCHEMA)
-    hass.services.async_register(DOMAIN, "enable_dhcp", handle_enable_dhcp)
-    hass.services.async_register(DOMAIN, "set_volume", handle_set_volume, schema=VOLUME_SCHEMA)
+    _LOGGER.info(f"🔄 BAS-IP options updated for {coordinator.host}")
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    _LOGGER.info("Unloading BAS-IP integration for %s", entry.data.get("host"))
+    """Unload a config entry."""
+    coordinator = hass.data[DOMAIN][entry.entry_id]
     
+    # Останавливаем обновление кнопок
+    await coordinator.async_stop_button_updater()
+    
+    # Выгружаем платформы
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    
+    if unload_ok:
+        hass.data[DOMAIN].pop(entry.entry_id)
+        _LOGGER.info(f"✅ BAS-IP integration unloaded for {coordinator.host}")
+    
+    return unload_ok
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Remove a config entry."""
+    _LOGGER.info(f"🗑️ Removing BAS-IP entry for {entry.data.get(CONF_HOST)}")
+    
+    # Очищаем данные
     if entry.entry_id in hass.data.get(DOMAIN, {}):
         coordinator = hass.data[DOMAIN][entry.entry_id]
         await coordinator.async_stop_button_updater()
+        hass.data[DOMAIN].pop(entry.entry_id)
     
-    services = [
-        "open_lock", "emergency_open", "emergency_close",
-        "reboot", "take_photo", "call_start", "call_end",
-        "set_language", "set_static_ip", "enable_dhcp",
-        "set_volume"
-    ]
-    for service in services:
-        if hass.services.has_service(DOMAIN, service):
-            hass.services.async_remove(DOMAIN, service)
+    # Удаляем устройство из device registry
+    device_registry = dr.async_get(hass)
+    device = device_registry.async_get_device(identifiers={(DOMAIN, entry.entry_id)})
+    if device:
+        device_registry.async_remove_device(device.id)
+        _LOGGER.info(f"🗑️ Device removed from registry")
+
+async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
+    """Migrate old entry."""
+    _LOGGER.info(f"🔄 Migrating BAS-IP entry from version {config_entry.version}")
     
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    if unload_ok:
-        if DOMAIN in hass.data and entry.entry_id in hass.data[DOMAIN]:
-            hass.data[DOMAIN].pop(entry.entry_id)
+    if config_entry.version == 1:
+        new_data = {**config_entry.data}
+        
+        if "mask" not in new_data:
+            new_data["mask"] = "255.255.255.0"
+        if "gateway" not in new_data:
+            new_data["gateway"] = "192.168.1.1"
+        if "dns" not in new_data:
+            new_data["dns"] = "8.8.8.8"
+        if "port" not in new_data:
+            new_data["port"] = 80
+        
+        config_entry.version = 2
+        hass.config_entries.async_update_entry(config_entry, data=new_data)
+        _LOGGER.info("✅ BAS-IP entry migrated to version 2")
     
-    return unload_ok
+    return True
+
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+    """Set up the BAS-IP component."""
+    hass.data.setdefault(DOMAIN, {})
+    return True

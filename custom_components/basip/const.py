@@ -22,6 +22,8 @@ API_SIP_SETTINGS = "/api/v1/device/sip/settings"
 API_SIP_ENABLE = "/api/v1/device/sip/enable"
 API_SIP_REREGISTER = "/api/v1/device/sip/reregister"
 API_CALL_AUTO_ANSWER = "/api/v1/device/call/auto_answer"
+API_CALL_DROP = "/api/v1/device/call/drop"
+API_CALL_DROP_LOCK_OPEN = "/api/v1/device/call/drop/lock-open"
 API_RESCUE_SERVICE = "/api/v1/device/feature/rescue-service"
 API_DEVICE_TIME = "/api/v1/device/time"
 API_DEVICE_LANGUAGE = "/api/v1/device/language"
@@ -64,39 +66,276 @@ TOKEN_RENEWAL_MINUTES = 5
 DEFAULT_UPDATE_INTERVAL = 60
 
 # Supported languages
-LANGUAGES = ["English", "Russian", "Ukrainian", "Spanish", "Turkish", "Deutsch", "Italian", "French"]
+LANGUAGES = [
+    "English",
+    "Russian",
+    "Ukrainian",
+    "Spanish",
+    "Turkish",
+    "Deutsch",
+    "Italian",
+    "French"
+]
 
 # Supported platforms
-PLATFORMS = [Platform.CAMERA, Platform.LOCK, Platform.SWITCH, Platform.SENSOR, Platform.BUTTON, Platform.NUMBER, Platform.SELECT]
+PLATFORMS = [
+    Platform.BINARY_SENSOR,
+    Platform.BUTTON,
+    Platform.CAMERA,
+    Platform.LOCK,
+    Platform.NUMBER,
+    Platform.SELECT,
+    Platform.SENSOR,
+    Platform.SWITCH,
+]
 
 # Sensor types with their API endpoints and display names
 SENSOR_TYPES = {
-    "info": {"endpoint": API_INFO, "name": "Device Info", "icon": "mdi:information"},
-    "network_settings": {"endpoint": API_NETWORK_SETTINGS, "name": "Network Settings", "icon": "mdi:network"},
-    "network_mac": {"endpoint": API_NETWORK_MAC, "name": "MAC Address", "icon": "mdi:ethernet"},
-    "network_ntp": {"endpoint": API_NETWORK_NTP, "name": "NTP Server", "icon": "mdi:clock"},
-    "network_dst": {"endpoint": API_NETWORK_DST, "name": "DST Settings", "icon": "mdi:weather-sunset"},
-    "network_timezone": {"endpoint": API_NETWORK_TIMEZONE, "name": "Timezone", "icon": "mdi:map-clock"},
-    "network_management_link": {"endpoint": API_NETWORK_MANAGEMENT_LINK, "name": "Link Settings", "icon": "mdi:link"},
-    "network_management_server": {"endpoint": API_NETWORK_MANAGEMENT_SERVER, "name": "Management Server", "icon": "mdi:server"},
-    "network_management_server_cert": {"endpoint": API_NETWORK_MANAGEMENT_SERVER_CERT, "name": "Server Certificate", "icon": "mdi:certificate"},
-    "sip_status": {"endpoint": API_SIP_STATUS, "name": "SIP Status", "icon": "mdi:phone"},
-    "sip_settings": {"endpoint": API_SIP_SETTINGS, "name": "SIP Settings", "icon": "mdi:phone-settings"},
-    "sip_enable": {"endpoint": API_SIP_ENABLE, "name": "SIP Enabled", "icon": "mdi:phone-check"},
-    "sip_reregister": {"endpoint": API_SIP_REREGISTER, "name": "SIP Reregister", "icon": "mdi:phone-refresh"},
-    "call_auto_answer": {"endpoint": API_CALL_AUTO_ANSWER, "name": "Auto Answer", "icon": "mdi:phone-in-talk"},
-    "rescue_service": {"endpoint": API_RESCUE_SERVICE, "name": "Rescue Service", "icon": "mdi:lifebuoy"},
-    "device_time": {"endpoint": API_DEVICE_TIME, "name": "Device Time", "icon": "mdi:clock"},
-    "device_language": {"endpoint": API_DEVICE_LANGUAGE, "name": "Language", "icon": "mdi:translate"},
-    "device_video": {"endpoint": API_DEVICE_VIDEO, "name": "Video Resolution", "icon": "mdi:video"},
-    "device_rtsp": {"endpoint": API_DEVICE_RTSP, "name": "RTSP Settings", "icon": "mdi:video-input-antenna"},
-    "device_payload": {"endpoint": API_DEVICE_PAYLOAD, "name": "Payload Codec", "icon": "mdi:code-json"},
-    "device_volume": {"endpoint": API_DEVICE_VOLUME, "name": "Volume", "icon": "mdi:volume-high"},
-    "device_relay": {"endpoint": API_DEVICE_RELAY, "name": "Relay Settings", "icon": "mdi:relay"},
-    "device_mode": {"endpoint": API_DEVICE_MODE, "name": "Mode", "icon": "mdi:cog"},
-    "lock_type": {"endpoint": API_LOCK_TYPE, "name": "Lock Type", "icon": "mdi:lock"},
-    "master_card": {"endpoint": API_MASTER_CARD, "name": "Master Card", "icon": "mdi:credit-card"},
-    "input_code": {"endpoint": API_INPUT_CODE, "name": "Access Code", "icon": "mdi:keyboard"},
-    "door_sensor_settings": {"endpoint": API_DOOR_SENSOR, "name": "Door Sensor Settings", "icon": "mdi:door-sensor"},
-    "exit_button_status": {"endpoint": API_EXIT_BUTTON, "name": "Exit Button Status", "icon": "mdi:exit-run"},
+    "bas_ip_info": {
+        "endpoint": API_INFO,
+        "icon": "mdi:information",
+        "translation_key": "bas_ip_info"
+    },
+    "bas_ip_network_settings": {
+        "endpoint": API_NETWORK_SETTINGS,
+        "icon": "mdi:network",
+        "translation_key": "bas_ip_network_settings"
+    },
+    "bas_ip_network_mac": {
+        "endpoint": API_NETWORK_MAC,
+        "icon": "mdi:ethernet",
+        "translation_key": "bas_ip_network_mac"
+    },
+    "bas_ip_network_ntp": {
+        "endpoint": API_NETWORK_NTP,
+        "icon": "mdi:clock",
+        "translation_key": "bas_ip_network_ntp"
+    },
+    "bas_ip_network_dst": {
+        "endpoint": API_NETWORK_DST,
+        "icon": "mdi:weather-sunset",
+        "translation_key": "bas_ip_network_dst"
+    },
+    "bas_ip_network_timezone": {
+        "endpoint": API_NETWORK_TIMEZONE,
+        "icon": "mdi:map-clock",
+        "translation_key": "bas_ip_network_timezone"
+    },
+    "bas_ip_network_management_link": {
+        "endpoint": API_NETWORK_MANAGEMENT_LINK,
+        "icon": "mdi:link",
+        "translation_key": "bas_ip_network_management_link"
+    },
+    "bas_ip_network_management_server": {
+        "endpoint": API_NETWORK_MANAGEMENT_SERVER,
+        "icon": "mdi:server",
+        "translation_key": "bas_ip_network_management_server"
+    },
+    "bas_ip_network_management_server_cert": {
+        "endpoint": API_NETWORK_MANAGEMENT_SERVER_CERT,
+        "icon": "mdi:certificate",
+        "translation_key": "bas_ip_network_management_server_cert"
+    },
+    "bas_ip_sip_status": {
+        "endpoint": API_SIP_STATUS,
+        "icon": "mdi:phone",
+        "translation_key": "bas_ip_sip_status"
+    },
+    "bas_ip_sip_settings": {
+        "endpoint": API_SIP_SETTINGS,
+        "icon": "mdi:phone-settings",
+        "translation_key": "bas_ip_sip_settings"
+    },
+    "bas_ip_sip_enable": {
+        "endpoint": API_SIP_ENABLE,
+        "icon": "mdi:phone-check",
+        "translation_key": "bas_ip_sip_enable"
+    },
+    "bas_ip_sip_reregister": {
+        "endpoint": API_SIP_REREGISTER,
+        "icon": "mdi:phone-refresh",
+        "translation_key": "bas_ip_sip_reregister"
+    },
+    "bas_ip_call_auto_answer": {
+        "endpoint": API_CALL_AUTO_ANSWER,
+        "icon": "mdi:phone-in-talk",
+        "translation_key": "bas_ip_call_auto_answer"
+    },
+    "bas_ip_call_drop": {
+        "endpoint": API_CALL_DROP,
+        "icon": "mdi:phone-hangup",
+        "translation_key": "bas_ip_call_drop"
+    },
+    "bas_ip_call_drop_lock_open": {
+        "endpoint": API_CALL_DROP_LOCK_OPEN,
+        "icon": "mdi:lock-open-variant",
+        "translation_key": "bas_ip_call_drop_lock_open"
+    },
+    "bas_ip_rescue_service": {
+        "endpoint": API_RESCUE_SERVICE,
+        "icon": "mdi:lifebuoy",
+        "translation_key": "bas_ip_rescue_service"
+    },
+    "bas_ip_device_time": {
+        "endpoint": API_DEVICE_TIME,
+        "icon": "mdi:clock",
+        "translation_key": "bas_ip_device_time"
+    },
+    "bas_ip_device_language": {
+        "endpoint": API_DEVICE_LANGUAGE,
+        "icon": "mdi:translate",
+        "translation_key": "bas_ip_device_language"
+    },
+    "bas_ip_device_video": {
+        "endpoint": API_DEVICE_VIDEO,
+        "icon": "mdi:video",
+        "translation_key": "bas_ip_device_video"
+    },
+    "bas_ip_device_rtsp": {
+        "endpoint": API_DEVICE_RTSP,
+        "icon": "mdi:video-input-antenna",
+        "translation_key": "bas_ip_device_rtsp"
+    },
+    "bas_ip_device_payload": {
+        "endpoint": API_DEVICE_PAYLOAD,
+        "icon": "mdi:code-json",
+        "translation_key": "bas_ip_device_payload"
+    },
+    "bas_ip_device_volume": {
+        "endpoint": API_DEVICE_VOLUME,
+        "icon": "mdi:volume-high",
+        "translation_key": "bas_ip_device_volume"
+    },
+    "bas_ip_device_relay": {
+        "endpoint": API_DEVICE_RELAY,
+        "icon": "mdi:relay",
+        "translation_key": "bas_ip_device_relay"
+    },
+    "bas_ip_device_mode": {
+        "endpoint": API_DEVICE_MODE,
+        "icon": "mdi:cog",
+        "translation_key": "bas_ip_device_mode"
+    },
+    "bas_ip_lock_type": {
+        "endpoint": API_LOCK_TYPE,
+        "icon": "mdi:lock",
+        "translation_key": "bas_ip_lock_type"
+    },
+    "bas_ip_master_card": {
+        "endpoint": API_MASTER_CARD,
+        "icon": "mdi:credit-card",
+        "translation_key": "bas_ip_master_card"
+    },
+    "bas_ip_input_code": {
+        "endpoint": API_INPUT_CODE,
+        "icon": "mdi:keyboard",
+        "translation_key": "bas_ip_input_code"
+    },
+    "bas_ip_door_sensor_settings": {
+        "endpoint": API_DOOR_SENSOR,
+        "icon": "mdi:door-sensor",
+        "translation_key": "bas_ip_door_sensor_settings"
+    },
+    "bas_ip_exit_button_status": {
+        "endpoint": API_EXIT_BUTTON,
+        "icon": "mdi:exit-run",
+        "translation_key": "bas_ip_exit_button_status"
+    },
 }
+
+# Translation keys for binary sensors
+BINARY_SENSOR_TRANSLATION_KEYS = {
+    "doorbell": "doorbell",
+    "exit_button": "exit_button",
+    "door_sensor": "door_sensor",
+    "door_open_too_long": "door_open_too_long",
+    "exit_button_status": "exit_button_status",
+}
+
+# Configuration flow constants
+CONF_CALL_NUMBERS = "call_numbers"
+CONF_UPDATE_INTERVAL = "update_interval"
+CONF_IP_ADDRESS = "ip_address"
+CONF_MASK = "mask"
+CONF_GATEWAY = "gateway"
+CONF_DNS = "dns"
+
+# Default configuration values
+DEFAULT_CALL_NUMBERS = ["79020"]
+DEFAULT_UPDATE_INTERVAL = 60
+DEFAULT_MASK = "255.255.255.0"
+DEFAULT_GATEWAY = "192.168.1.1"
+DEFAULT_DNS = "8.8.8.8"
+
+# Volume settings
+MIN_VOLUME_LEVEL = 1
+MAX_VOLUME_LEVEL = 6
+
+# Service names
+SERVICE_OPEN_LOCK = "open_lock"
+SERVICE_EMERGENCY_OPEN = "emergency_open"
+SERVICE_EMERGENCY_CLOSE = "emergency_close"
+SERVICE_REBOOT = "reboot"
+SERVICE_TAKE_PHOTO = "take_photo"
+SERVICE_CALL_START = "call_start"
+SERVICE_CALL_END = "call_end"
+SERVICE_SET_LANGUAGE = "set_language"
+SERVICE_SET_STATIC_IP = "set_static_ip"
+SERVICE_ENABLE_DHCP = "enable_dhcp"
+SERVICE_SET_VOLUME = "set_volume"
+
+# Service field names
+SERVICE_FIELD_LOCK_NUMBER = "lock_number"
+SERVICE_FIELD_UNLOCK_TIME = "unlock_time"
+SERVICE_FIELD_NUMBER = "number"
+SERVICE_FIELD_LANGUAGE = "language"
+SERVICE_FIELD_IP_ADDRESS = "ip_address"
+SERVICE_FIELD_MASK = "mask"
+SERVICE_FIELD_GATEWAY = "gateway"
+SERVICE_FIELD_DNS = "dns"
+SERVICE_FIELD_VOLUME = "volume"
+
+# Maximum values
+MAX_CALL_NUMBERS = 5
+MAX_VOLUME_LEVEL = 6
+MIN_VOLUME_LEVEL = 1
+MAX_UNLOCK_TIME = 60000
+DEFAULT_UNLOCK_TIME = 10000
+
+# Lock numbers
+LOCK_NUMBERS = [1, 2, 3, 4]
+
+# Event types
+EVENT_DOORBELL = "basip_doorbell"
+EVENT_EXIT_BUTTON = "basip_exit_button"
+EVENT_DOOR_OPEN = "basip_door_open"
+EVENT_DOOR_CLOSED = "basip_door_closed"
+EVENT_DOOR_OPEN_TOO_LONG = "basip_door_open_too_long"
+
+# Log event keys
+LOG_EVENT_OUTGOING_CALL = "outgoing_call"
+LOG_EVENT_LOCK_OPENED_BY_EXIT_BTN = "lock_was_opened_by_exit_btn"
+LOG_EVENT_LOCK_OPENED = "lock_was_opened"
+LOG_EVENT_LOCK_CLOSED = "lock_was_closed"
+LOG_EVENT_DOOR_OPEN = "door_is_open"
+LOG_EVENT_DOOR_CLOSED = "door_is_closed"
+LOG_EVENT_TIMEOUT_EXCEED = "timeout_is_exceed"
+
+# Device attributes
+ATTR_LAST_EVENT_TIMESTAMP = "last_event_timestamp"
+ATTR_EXIT_BUTTON_ENABLED = "exit_button_enabled"
+ATTR_UPDATE_INTERVAL = "update_interval"
+ATTR_LAST_UPDATE = "last_update"
+ATTR_VALUE = "value"
+
+# Error messages
+ERROR_CANNOT_CONNECT = "cannot_connect"
+ERROR_CANNOT_CONNECT_CURRENT = "cannot_connect_current"
+ERROR_PASSWORD_REQUIRED = "password_required"
+ERROR_HOST_REQUIRED = "host_required"
+ERROR_IP_REQUIRED = "ip_required"
+ERROR_IP_OCCUPIED = "ip_occupied"
+ERROR_IP_CHANGE_FAILED = "ip_change_failed"
+ERROR_PASSWORD_CHANGE_FAILED = "password_change_failed"
+ERROR_IP_UNCHANGED = "ip_unchanged"
+ERROR_UNKNOWN = "unknown"
